@@ -1,0 +1,85 @@
+Implementation Notes: EEG-ARNN Channel Selection
+-------------------------------------------------
+
+Purpose
+- Solve motor-imagery EEG classification while cutting the number of electrodes.
+- Keep accuracy close to using all channels by learning which electrodes matter most.
+
+Key Idea
+- Combine a 1D CNN (for time patterns) with a Graph Convolution Network (for spatial channel relations).
+- Let the network learn the electrode-to-electrode connectivity during training so we avoid hand-made adjacency maps.
+
+Data Used
+1. TJU in-house dataset: 25 subjects, 60 effective channels, 1000 Hz -> downsampled to 128 Hz, right-hand vs foot imagery.
+2. BCI Competition IV 2a: 9 subjects, 22 channels, 250 Hz -> resampled to 128 Hz, left vs right hand imagery.
+3. PhysioNet motor imagery: 105 subjects (after dropping 4 corrupted IDs), 64 channels, 160 Hz, left vs right fist imagery.
+
+Pre-processing Checklist
+- Impedance tuned below 5 kOhm, artefact removal via EEGLAB (ICA + baseline correction) for TJU.
+- Band-pass 0.5-50 Hz on TJU, provider filters reused for public sets.
+- Slice trials to 4 s (512 samples at 128 Hz) or 3.2 s (~512 samples at 160 Hz for PhysioNet).
+- Reshape each trial to channels x time before feeding the model.
+
+Model Overview (EEG-ARNN)
+- Core block repeats: Temporal Feature Extraction Module (TFEM) -> Channel Active Reasoning Module (CARM).
+- TFEM: depthwise Conv1D, BatchNorm, ELU, Dropout; kernels sized to capture rhythms directly in time.
+- CARM: graph convolution that starts fully connected and updates edge weights during training.
+- Final TFEM compresses channel dimension; dense + Softmax layer outputs class probabilities.
+- Architecture sketch: pdf_pages/page_03.png (Figure 1 in the paper).
+
+What CARM Does
+1. Begin with every electrode linked to every other electrode (fully connected adjacency).
+2. Learn edge weights while training so co-activated electrodes reinforce one another.
+3. Update adjacency with a small learning rate (rho = 0.001) using gradients from the loss.
+4. Apply Chebyshev-style graph convolution to mix channel signals at every time step.
+
+Training Flow (Algorithm 1)
+- Feed batches of trials and labels.
+- Run forward pass through stacked TFEM-CARM blocks.
+- Compute cross-entropy loss; backprop updates CNN filters, graph weights, and adjacency entries.
+- Train for 500 epochs with batch size 20, Adam optimiser (lr = 0.001), dropout = 0.25.
+
+Channel Selection Methods
+1. Edge-Selection (ES)
+   - Inspect the learned adjacency matrix W_star after training.
+   - For each electrode pair (i, j) compute score delta_ij = |w_ij| + |w_ji|.
+   - Pick the top-K edges by delta_ij and keep the electrodes at both ends.
+   - Good when strong pairwise partnerships are the goal.
+
+2. Aggregation-Selection (AS)
+   - For each electrode i compute tau_i = sum_j |w_ij| + degree_i.
+   - Rank electrodes by tau_i and keep the top-K with the largest aggregated influence.
+   - Good when we care about hubs that coordinate with many neighbours.
+
+Using the Selected Channels
+- Drop all other electrodes from the dataset, keeping only the ES or AS picks.
+- Retrain EEG-ARNN with the same hyperparameters on the reduced channel set.
+- Paper shows 1/6 to 1/2 of the original channels achieves accuracy close to the full set.
+
+Results Snapshot
+- TJU (subject-specific): EEG-ARNN average accuracy 92.3%, beating FBCSP 67.5%, EEGNet 84.9%, ACS-SE-CNN 87.2%, G-CRAM 71.5%.
+- BCI 2a: Highest mean accuracy and F1-score across nine subjects among all baselines.
+- PhysioNet: Best mean accuracy/F1 with lower variance than four of five baselines across ten random splits.
+- Ablations show both TFEM and CARM are necessary; three stacked TFEM-CARM blocks work best.
+
+Neurophysiological Check
+- ES/AS frequently selected C1, C3, Cz, CP1, CP3 (sensorimotor strip sites for hand/foot imagery).
+- Channel maps from the paper: pdf_pages/page_09.png and pdf_pages/page_10.png (Figures 4 and 5).
+
+Implementation Tips
+- Initialise adjacency as ones off the diagonal so every pair starts connected, then let training tune weights.
+- Symmetric normalisation (D^(-1/2) W D^(-1/2)) keeps graph convolutions numerically stable.
+- Keep the adjacency learning rate tiny (0.001) to avoid unstable edge updates.
+- ELU activations keep both positive and negative signal swings; dropout fights overfitting on limited EEG trials.
+- Report accuracy with 10-fold cross-validation for subject-wise work or multiple random splits for cross-subject tests.
+
+Useful Figures (PDF page images bundled in the repo)
+- pdf_pages/page_03.png: EEG-ARNN framework overview.
+- pdf_pages/page_04.png: Edge-selection vs aggregation-selection illustration.
+- pdf_pages/page_07.png: Accuracy comparison bar chart on TJU dataset.
+- pdf_pages/page_09.png and pdf_pages/page_10.png: Selected channel distributions over the scalp.
+
+Summary
+- Learning the graph structure and temporal filters together yields strong MI EEG decoding.
+- ES and AS translate the learned graph into compact electrode layouts with minimal extra work.
+- Works across single-subject and cross-subject settings while cutting sensor count dramatically.
