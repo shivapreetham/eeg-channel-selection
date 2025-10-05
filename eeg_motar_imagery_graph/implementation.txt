@@ -1,85 +1,64 @@
-Implementation Notes: EEG-ARNN Channel Selection
--------------------------------------------------
+﻿Implementation Notes: Multi-Dataset EEG MI Graph-Net (Target >=92% Acc)
+-----------------------------------------------------------------------
 
-Purpose
-- Solve motor-imagery EEG classification while cutting the number of electrodes.
-- Keep accuracy close to using all channels by learning which electrodes matter most.
+Objective & Metrics
+- Deliver >=92% macro-averaged validation accuracy on BCI 2a, BCI 2b, and PhysioNet motor imagery while using <=40% of channels after selection.
+- Track balanced accuracy, macro-F1, and confusion matrices per subject; require no class to fall below 0.88 recall on held-out subjects.
+- Support reproducible cross-subject evaluation: LOSO (leave-one-subject-out) and 5-fold group splits with fixed RNG seeds (42, 1337, 2025).
 
-Key Idea
-- Combine a 1D CNN (for time patterns) with a Graph Convolution Network (for spatial channel relations).
-- Let the network learn the electrode-to-electrode connectivity during training so we avoid hand-made adjacency maps.
+Dataset Coverage
+- BCI Competition IV 2a: subjects A01-A09, motor imagery runs T, 4-class task.
+- BCI Competition IV 2b: subjects B01-B09, runs 01T-03T, 2-class task.
+- PhysioNet MI (EEG Motor Movement/Imagery): subjects S001-S109 (drop S088, S092, S100, S104 if corrupted), runs R03, R04, R07, R08, 2-class task.
+- Harmonise metadata (channel names, montage, sampling rate) keeping full cohorts; the notebook currently truncates to the first 2-3 subjects and should be expanded to the full lists above.
 
-Data Used
-1. TJU in-house dataset: 25 subjects, 60 effective channels, 1000 Hz -> downsampled to 128 Hz, right-hand vs foot imagery.
-2. BCI Competition IV 2a: 9 subjects, 22 channels, 250 Hz -> resampled to 128 Hz, left vs right hand imagery.
-3. PhysioNet motor imagery: 105 subjects (after dropping 4 corrupted IDs), 64 channels, 160 Hz, left vs right fist imagery.
+Pre-processing & Augmentation Pipeline
+- Resample all recordings to 128 Hz with MNE's mne.filter.resample; PhysioNet (160 Hz) -> 128 Hz, BCI 2a (250 Hz) -> 128 Hz, BCI 2b (250 Hz) -> 128 Hz.
+- Apply zero-phase band-pass 4-38 Hz, plus 50/60 Hz notch depending on subject locale; retain filter coefficients for reproducibility.
+- Re-reference to common average, then run automated ICA (FastICA) removing eye/muscle components per subject using variance ratios (>=0.8).
+- Epoch windows: [-0.5, 4.0] seconds aligned to cue; discard trials with absolute amplitude >120 microvolts after filtering.
+- Standardise per subject using RobustScaler (median/IQR) then z-score across training fold only; store transformer for validation/test.
+- Augment training trials: random temporal jitter (±40 ms), narrow-band amplitude scaling (mu: 8-12 Hz, beta: 18-26 Hz), Gaussian noise (SNR >= 25 dB), mixup (α=0.2) and CutMix (time-axis only).
+- Oversample underrepresented classes via augmentation before batching; maintain class_weight for residual imbalance.
 
-Pre-processing Checklist
-- Impedance tuned below 5 kOhm, artefact removal via EEGLAB (ICA + baseline correction) for TJU.
-- Band-pass 0.5-50 Hz on TJU, provider filters reused for public sets.
-- Slice trials to 4 s (512 samples at 128 Hz) or 3.2 s (~512 samples at 160 Hz for PhysioNet).
-- Reshape each trial to channels x time before feeding the model.
+Graph Construction & Channel Priors
+- Initialise adjacency A0 from 3D sensor coordinates (MNE standard_1005); weight edges by exp(-d^2 / (2σ^2)) with σ=35 mm and keep top-12 neighbours per node.
+- Learn residual adjacency ΔA with constraints: symmetric, zero diagonal, L1 penalty 1e-4, Frobenius budget ||ΔA||_F <= 0.5 * ||A0||_F enforced via projection each epoch.
+- Build Laplacian L = D^{-1/2}(A0 + ΔA)D^{-1/2}; cache dense and sparse forms.
+- Apply edge dropout (rate 0.2) during training to prevent over-reliance on single connections.
+- For PhysioNet's 64 channels, compress to 32 most central channels using aggregated degree scores before model input, keeping mapping for inverse transform.
 
-Model Overview (EEG-ARNN)
-- Core block repeats: Temporal Feature Extraction Module (TFEM) -> Channel Active Reasoning Module (CARM).
-- TFEM: depthwise Conv1D, BatchNorm, ELU, Dropout; kernels sized to capture rhythms directly in time.
-- CARM: graph convolution that starts fully connected and updates edge weights during training.
-- Final TFEM compresses channel dimension; dense + Softmax layer outputs class probabilities.
-- Architecture sketch: pdf_pages/page_03.png (Figure 1 in the paper).
+Model: Temporal-Graph Hybrid (EEG-ARNN+)
+- Temporal Feature Extraction Module (TFEM+): three depthwise-separable Conv1D branches with kernel sizes {16, 32, 64}, dilation rates {1, 2, 4}; concatenate, batch-norm, ELU, channel squeeze & excitation, dropout 0.3.
+- Channel Active Reasoning Module (CARM+): two-layer Chebyshev graph convolution (order 3) followed by graph attention (GATv2) using learned adjacency; residual add & layer norm.
+- Repeat TFEM+/CARM+ stack three times with widening factors [1.0, 1.5, 2.0]; include stochastic depth (survival 0.85).
+- Shared bottleneck: global average pooling over time, graph-aware pooling (TopKPooling with k=0.6) over channels, concatenate pooled embeddings.
+- Classification head: Dense(128, elu) + dropout 0.4 + Dense(num_classes, softmax).
+- Multi-task auxiliary heads: subject-ID prediction (for adversarial alignment using gradient reversal, λ=0.2) and band-power regression (mu/beta power) to stabilise feature learning.
 
-What CARM Does
-1. Begin with every electrode linked to every other electrode (fully connected adjacency).
-2. Learn edge weights while training so co-activated electrodes reinforce one another.
-3. Update adjacency with a small learning rate (rho = 0.001) using gradients from the loss.
-4. Apply Chebyshev-style graph convolution to mix channel signals at every time step.
+Optimization & Training Curriculum
+- Stage 1 (pre-training): train on merged dataset (all subjects) with subject-balanced sampler, batch size 48, OneCycle LR schedule (max_lr 1.5e-3, final_lr 1e-5), weight decay 1e-4, gradient clipping 1.5.
+- Stage 2 (dataset-specific fine-tune): initialise from Stage 1 weights, fine-tune separately for each dataset with reduced max_lr 5e-4, patience 15, freeze first TFEM+/CARM+ block for first 5 epochs.
+- Stage 3 (subject adaptation): optional fine-tune last block + classifier for each subject using 10% labelled trials and mixup to mitigate overfitting.
+- Losses: CE with label smoothing 0.05 + adjacency regulariser + adversarial loss (gradient reversal) + auxiliary regression (Huber). Total loss weights: [1.0, 0.1, 0.2, 0.05].
+- Use EMA (decay 0.999) of model weights for evaluation checkpoints; save best EMA model per validation metric.
 
-Training Flow (Algorithm 1)
-- Feed batches of trials and labels.
-- Run forward pass through stacked TFEM-CARM blocks.
-- Compute cross-entropy loss; backprop updates CNN filters, graph weights, and adjacency entries.
-- Train for 500 epochs with batch size 20, Adam optimiser (lr = 0.001), dropout = 0.25.
+Evaluation & Reporting
+- Primary split: LOSO per dataset (train on N-1 subjects, validate on held-out subject). Aggregate metrics across subjects and report mean ± std.
+- Secondary split: stratified 5-fold group CV (subject as group) for cross-dataset pre-training sanity check.
+- Produce per-class metrics, ROC/PR curves, calibration plots, and channel attention heatmaps.
+- Channel selection: compute edge scores |w_ij|+|w_ji| and node scores sum_j |w_ij|; select top-K (K=12 for BCI 2a, 8 for BCI 2b, 16 for PhysioNet). Re-train model on reduced channels and verify accuracy drop <1.5%.
+- Statistical testing: paired t-test vs current CNN/GCN baselines on LOSO accuracies (α=0.05).
 
-Channel Selection Methods
-1. Edge-Selection (ES)
-   - Inspect the learned adjacency matrix W_star after training.
-   - For each electrode pair (i, j) compute score delta_ij = |w_ij| + |w_ji|.
-   - Pick the top-K edges by delta_ij and keep the electrodes at both ends.
-   - Good when strong pairwise partnerships are the goal.
+Notebook Action Items
+- Expand DATASETS dict to include full subject lists and expose config flags for LOSO/GroupKFold.
+- Replace manual numpy batching with tf.data pipeline that applies augmentation, caching, shuffling, and prefetching.
+- Implement adjacency initialisation from sensor positions (store in dataset_store) and pass to model builder.
+- Add Stage 1/Stage 2 training loops with checkpoints, EMA tracking, and resume capability.
+- Log metrics to TensorBoard + JSON for reproducibility; include scripts to compute aggregated reports.
+- Visualise learned adjacency deltas and channel importances per dataset for interpretability.
 
-2. Aggregation-Selection (AS)
-   - For each electrode i compute tau_i = sum_j |w_ij| + degree_i.
-   - Rank electrodes by tau_i and keep the top-K with the largest aggregated influence.
-   - Good when we care about hubs that coordinate with many neighbours.
-
-Using the Selected Channels
-- Drop all other electrodes from the dataset, keeping only the ES or AS picks.
-- Retrain EEG-ARNN with the same hyperparameters on the reduced channel set.
-- Paper shows 1/6 to 1/2 of the original channels achieves accuracy close to the full set.
-
-Results Snapshot
-- TJU (subject-specific): EEG-ARNN average accuracy 92.3%, beating FBCSP 67.5%, EEGNet 84.9%, ACS-SE-CNN 87.2%, G-CRAM 71.5%.
-- BCI 2a: Highest mean accuracy and F1-score across nine subjects among all baselines.
-- PhysioNet: Best mean accuracy/F1 with lower variance than four of five baselines across ten random splits.
-- Ablations show both TFEM and CARM are necessary; three stacked TFEM-CARM blocks work best.
-
-Neurophysiological Check
-- ES/AS frequently selected C1, C3, Cz, CP1, CP3 (sensorimotor strip sites for hand/foot imagery).
-- Channel maps from the paper: pdf_pages/page_09.png and pdf_pages/page_10.png (Figures 4 and 5).
-
-Implementation Tips
-- Initialise adjacency as ones off the diagonal so every pair starts connected, then let training tune weights.
-- Symmetric normalisation (D^(-1/2) W D^(-1/2)) keeps graph convolutions numerically stable.
-- Keep the adjacency learning rate tiny (0.001) to avoid unstable edge updates.
-- ELU activations keep both positive and negative signal swings; dropout fights overfitting on limited EEG trials.
-- Report accuracy with 10-fold cross-validation for subject-wise work or multiple random splits for cross-subject tests.
-
-Useful Figures (PDF page images bundled in the repo)
-- pdf_pages/page_03.png: EEG-ARNN framework overview.
-- pdf_pages/page_04.png: Edge-selection vs aggregation-selection illustration.
-- pdf_pages/page_07.png: Accuracy comparison bar chart on TJU dataset.
-- pdf_pages/page_09.png and pdf_pages/page_10.png: Selected channel distributions over the scalp.
-
-Summary
-- Learning the graph structure and temporal filters together yields strong MI EEG decoding.
-- ES and AS translate the learned graph into compact electrode layouts with minimal extra work.
-- Works across single-subject and cross-subject settings while cutting sensor count dramatically.
+Key Differences vs Current Notebook
+- Current notebook samples only first 2-3 subjects and relies on weak graph augmentation; new plan trains on every available subject with rigorous splits.
+- CNN/GCN baselines are replaced with a multi-scale temporal + graph attention hybrid tuned for MI rhythms.
+- Training is multi-stage with curriculum, augmentation, and regularisation specifically aimed at pushing validation accuracy beyond 92% while keeping sensors minimal.
