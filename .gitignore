@@ -1,11 +1,9 @@
 .claude
 gnn_learning_roadmap.md
-BCI_2b/
-BCI_2a/
 data/
 eeg-motor-movementimagery-dataset-1.0.0/
-physionet/
 pdf_pages/
 vendor_pypdf
 bhaatu
 project report
+docs
