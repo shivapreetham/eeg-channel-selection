@@ -47,78 +47,39 @@ class CARM(nn.Module):
     """
     Channel Active Reasoning Module
     Learns channel connectivity via graph convolution
-
-    Implements the proper GCN formula from the paper:
-    H = D_tilde^(-1/2) * W_tilde * D_tilde^(-1/2) * X * Theta
-
-    Where:
-        W_tilde = W* + I (add self-loops)
-        D_tilde = degree matrix
-        X = input features
-        Theta = learnable weights
     """
     def __init__(self, num_channels, hidden_dim=40):
         super(CARM, self).__init__()
         self.num_channels = num_channels
         self.hidden_dim = hidden_dim
 
-        # Learnable adjacency matrix W*
         self.W = nn.Parameter(torch.FloatTensor(num_channels, num_channels))
         nn.init.xavier_uniform_(self.W)
 
-        # Learnable transformation theta (for graph convolution)
-        self.theta = nn.Linear(hidden_dim, hidden_dim, bias=False)
+        self.theta = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1, bias=False)
+        self.phi = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1, bias=False)
 
         self.bn = nn.BatchNorm2d(hidden_dim)
         self.activation = nn.ELU()
 
     def forward(self, x):
-        """
-        Args:
-            x: (batch_size, hidden_dim, num_channels, time_steps)
+        batch_size, channels, num_channels, time_steps = x.size()
 
-        Returns:
-            out: (batch_size, hidden_dim, num_channels, time_steps)
-            A_sym: Symmetric adjacency matrix
-        """
-        batch_size, hidden_dim, num_channels, time_steps = x.size()
-
-        # 1. Get symmetric adjacency matrix
         A = torch.sigmoid(self.W)
         A_sym = (A + A.t()) / 2
 
-        # 2. Add self-loops: W_tilde = W* + I
-        I = torch.eye(num_channels, device=x.device)
-        A_tilde = A_sym + I
+        x_reshaped = x.permute(0, 2, 1, 3)
+        x_reshaped = x_reshaped.contiguous().view(batch_size * num_channels, channels, time_steps)
+        x_reshaped = x_reshaped.unsqueeze(2)
 
-        # 3. Compute degree matrix D_tilde
-        D_tilde = torch.diag(A_tilde.sum(dim=1))
+        x_graph = torch.matmul(A_sym, x_reshaped.view(batch_size, num_channels, -1))
+        x_graph = x_graph.view(batch_size, num_channels, channels, time_steps)
+        x_graph = x_graph.permute(0, 2, 1, 3)
 
-        # 4. Compute normalized adjacency: D^(-1/2) * A_tilde * D^(-1/2)
-        D_inv_sqrt = torch.pow(D_tilde, -0.5)
-        D_inv_sqrt[torch.isinf(D_inv_sqrt)] = 0.0
-        A_norm = D_inv_sqrt @ A_tilde @ D_inv_sqrt
+        theta_x = self.theta(x)
+        phi_x = self.phi(x_graph)
 
-        # 5. Apply graph convolution on channel dimension
-        # Reshape: (batch, hidden_dim, num_channels, time) -> (batch, time, num_channels, hidden_dim)
-        x_reshaped = x.permute(0, 3, 2, 1)  # (batch, time, channels, features)
-
-        # Reshape to (batch * time, num_channels, hidden_dim)
-        x_flat = x_reshaped.contiguous().view(batch_size * time_steps, num_channels, hidden_dim)
-
-        # Graph aggregation: (num_channels, num_channels) @ (batch*time, num_channels, hidden_dim)
-        x_graph = torch.matmul(A_norm, x_flat)  # (batch*time, num_channels, hidden_dim)
-
-        # Apply learnable transformation Theta
-        x_graph = self.theta(x_graph)  # (batch*time, num_channels, hidden_dim)
-
-        # Reshape back: (batch*time, num_channels, hidden_dim) -> (batch, time, num_channels, hidden_dim)
-        x_graph = x_graph.view(batch_size, time_steps, num_channels, hidden_dim)
-
-        # Permute back: (batch, time, num_channels, hidden_dim) -> (batch, hidden_dim, num_channels, time)
-        out = x_graph.permute(0, 3, 2, 1)
-
-        # 6. Batch normalization and activation
+        out = theta_x + phi_x
         out = self.bn(out)
         out = self.activation(out)
 

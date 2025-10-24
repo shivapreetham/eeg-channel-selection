@@ -218,7 +218,7 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=3, verbose=False
+        optimizer, mode='min', factor=0.5, patience=5, verbose=False
     )
 
     history = {
@@ -259,7 +259,7 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
 
 
 def cross_validate_subject(data, labels, num_channels, num_timepoints, num_classes,
-                          device, n_splits=3, epochs=30, lr=0.001, batch_size=64, patience=8):
+                          device, n_splits=3, epochs=100, lr=0.001):
     """
     Perform k-fold cross-validation for a single subject
 
@@ -297,8 +297,6 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
     adjacency_matrices = []
 
     for fold, (train_idx, val_idx) in enumerate(skf.split(data, labels)):
-        print(f"  Fold {fold+1}/{n_splits}", end=" ", flush=True)
-
         X_train, X_val = data[train_idx], data[val_idx]
         y_train, y_val = labels[train_idx], labels[val_idx]
 
@@ -308,8 +306,8 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
         train_dataset = EEGDataset(X_train, y_train)
         val_dataset = EEGDataset(X_val, y_val)
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
         model = EEGARNN(
             num_channels=num_channels,
@@ -320,7 +318,7 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
 
         history, best_state = train_model(
             model, train_loader, val_loader, device,
-            epochs=epochs, lr=lr, patience=patience
+            epochs=epochs, lr=lr, patience=15
         )
 
         model.load_state_dict(best_state)
@@ -330,8 +328,6 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
 
         adj_matrix = model.get_final_adjacency_matrix()
         adjacency_matrices.append(adj_matrix)
-
-        print(f"-> Acc: {val_acc:.3f} (stopped at epoch {len(history['val_acc'])})")
 
         fold_results.append({
             'fold': fold,
@@ -352,7 +348,7 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
 
 
 def retrain_with_selected_channels(data, labels, selected_channel_indices, num_timepoints, num_classes,
-                                   device, n_splits=3, epochs=25, lr=0.001, batch_size=64, patience=6):
+                                   device, n_splits=3, epochs=50, lr=0.001):
     """
     Retrain model using only selected channels
     
@@ -402,8 +398,8 @@ def retrain_with_selected_channels(data, labels, selected_channel_indices, num_t
         train_dataset = EEGDataset(X_train, y_train)
         val_dataset = EEGDataset(X_val, y_val)
         
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
         
         model = EEGARNN(
             num_channels=num_channels_subset,
@@ -414,7 +410,7 @@ def retrain_with_selected_channels(data, labels, selected_channel_indices, num_t
         
         history, best_state = train_model(
             model, train_loader, val_loader, device,
-            epochs=epochs, lr=lr, patience=patience
+            epochs=epochs, lr=lr, patience=15
         )
         
         model.load_state_dict(best_state)

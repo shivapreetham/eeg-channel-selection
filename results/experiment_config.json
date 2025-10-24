@@ -1,0 +1,41 @@
+{
+  "data": {
+    "preprocessed_dir": "data\\physionet\\derived\\preprocessed",
+    "index_file": "data\\physionet\\derived\\physionet_preprocessed_index.csv",
+    "selected_classes": [
+      1,
+      2
+    ],
+    "tmin": -1.0,
+    "tmax": 5.0,
+    "baseline": [
+      -0.5,
+      0
+    ]
+  },
+  "model": {
+    "hidden_dim": 40,
+    "epochs": 10,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "n_folds": 2
+  },
+  "channel_selection": {
+    "k_values": [
+      10,
+      15,
+      20,
+      25,
+      "all"
+    ],
+    "methods": [
+      "ES",
+      "AS"
+    ]
+  },
+  "output": {
+    "results_dir": "results",
+    "models_dir": "saved_models"
+  },
+  "max_subjects": 5
+}

@@ -60,17 +60,12 @@ def load_preprocessed_data(fif_path, tmin=-1.0, tmax=5.0, baseline=(-0.5, 0)):
     """
     raw = mne.io.read_raw_fif(fif_path, preload=True, verbose='ERROR')
 
-    # Try to find events from stim channels first
-    try:
-        events = mne.find_events(raw, verbose='ERROR')
-        if len(events) == 0:
-            return None, None
-        event_ids = {f'T{i}': i for i in np.unique(events[:, 2])}
-    except ValueError:
-        # If no stim channels, try to get events from annotations
-        events, event_ids = mne.events_from_annotations(raw, verbose='ERROR')
-        if len(events) == 0:
-            return None, None
+    events = mne.find_events(raw, verbose='ERROR')
+
+    if len(events) == 0:
+        return None, None
+
+    event_ids = {f'T{i}': i for i in np.unique(events[:, 2])}
 
     epochs = mne.Epochs(
         raw, events,
@@ -218,7 +213,7 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=3, verbose=False
+        optimizer, mode='min', factor=0.5, patience=5, verbose=False
     )
 
     history = {
@@ -259,7 +254,7 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
 
 
 def cross_validate_subject(data, labels, num_channels, num_timepoints, num_classes,
-                          device, n_splits=3, epochs=30, lr=0.001, batch_size=64, patience=8):
+                          device, n_splits=3, epochs=100, lr=0.001):
     """
     Perform k-fold cross-validation for a single subject
 
@@ -297,8 +292,6 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
     adjacency_matrices = []
 
     for fold, (train_idx, val_idx) in enumerate(skf.split(data, labels)):
-        print(f"  Fold {fold+1}/{n_splits}", end=" ", flush=True)
-
         X_train, X_val = data[train_idx], data[val_idx]
         y_train, y_val = labels[train_idx], labels[val_idx]
 
@@ -308,8 +301,8 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
         train_dataset = EEGDataset(X_train, y_train)
         val_dataset = EEGDataset(X_val, y_val)
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
         model = EEGARNN(
             num_channels=num_channels,
@@ -320,7 +313,7 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
 
         history, best_state = train_model(
             model, train_loader, val_loader, device,
-            epochs=epochs, lr=lr, patience=patience
+            epochs=epochs, lr=lr, patience=15
         )
 
         model.load_state_dict(best_state)
@@ -330,8 +323,6 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
 
         adj_matrix = model.get_final_adjacency_matrix()
         adjacency_matrices.append(adj_matrix)
-
-        print(f"-> Acc: {val_acc:.3f} (stopped at epoch {len(history['val_acc'])})")
 
         fold_results.append({
             'fold': fold,
@@ -348,88 +339,4 @@ def cross_validate_subject(data, labels, num_channels, num_timepoints, num_class
         'avg_accuracy': np.mean([r['val_acc'] for r in fold_results]),
         'std_accuracy': np.std([r['val_acc'] for r in fold_results]),
         'adjacency_matrix': avg_adjacency
-    }
-
-
-def retrain_with_selected_channels(data, labels, selected_channel_indices, num_timepoints, num_classes,
-                                   device, n_splits=3, epochs=25, lr=0.001, batch_size=64, patience=6):
-    """
-    Retrain model using only selected channels
-    
-    Parameters
-    ----------
-    data : np.ndarray
-        Full EEG data (n_trials, n_channels, n_timepoints)
-    labels : np.ndarray
-        Labels (n_trials,)
-    selected_channel_indices : np.ndarray
-        Indices of channels to keep
-    num_timepoints : int
-        Number of time points
-    num_classes : int
-        Number of classes
-    device : torch.device
-        Device to train on
-    n_splits : int
-        Number of CV folds
-    epochs : int
-        Max epochs per fold
-    lr : float
-        Learning rate
-        
-    Returns
-    -------
-    results : dict
-        Cross-validation results with selected channels
-    """
-    from models import EEGARNN
-    
-    # Select only the specified channels
-    data_subset = data[:, selected_channel_indices, :]
-    num_channels_subset = len(selected_channel_indices)
-    
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-    
-    fold_results = []
-    
-    for fold, (train_idx, val_idx) in enumerate(skf.split(data_subset, labels)):
-        X_train, X_val = data_subset[train_idx], data_subset[val_idx]
-        y_train, y_val = labels[train_idx], labels[val_idx]
-        
-        X_train = normalize_data(X_train)
-        X_val = normalize_data(X_val)
-        
-        train_dataset = EEGDataset(X_train, y_train)
-        val_dataset = EEGDataset(X_val, y_val)
-        
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
-        
-        model = EEGARNN(
-            num_channels=num_channels_subset,
-            num_timepoints=num_timepoints,
-            num_classes=num_classes,
-            hidden_dim=40
-        ).to(device)
-        
-        history, best_state = train_model(
-            model, train_loader, val_loader, device,
-            epochs=epochs, lr=lr, patience=patience
-        )
-        
-        model.load_state_dict(best_state)
-        _, val_acc, val_preds, val_labels = evaluate(
-            model, val_loader, nn.CrossEntropyLoss(), device
-        )
-        
-        fold_results.append({
-            'fold': fold,
-            'val_acc': val_acc,
-            'history': history
-        })
-    
-    return {
-        'fold_results': fold_results,
-        'avg_accuracy': np.mean([r['val_acc'] for r in fold_results]),
-        'std_accuracy': np.std([r['val_acc'] for r in fold_results])
     }

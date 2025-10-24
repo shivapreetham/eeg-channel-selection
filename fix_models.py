@@ -1,4 +1,6 @@
-"""
+"""Script to fix the models.py file with proper CARM implementation"""
+
+models_code = '''"""
 EEG-ARNN Model Architecture
 Implements the 3-fold TFEM-CARM architecture from the paper.
 """
@@ -309,3 +311,15 @@ class ChannelSelector:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
         return fig
+'''
+
+# Write to models.py
+with open('models.py', 'w', encoding='utf-8') as f:
+    f.write(models_code)
+
+print("✓ models.py fixed with proper CARM implementation")
+print("\nChanges made:")
+print("  - CARM now uses proper graph convolution: H = D^(-1/2) * W_tilde * D^(-1/2) * X * Theta")
+print("  - Replaced theta/phi Conv2d with proper Linear layer for graph transformation")
+print("  - Added degree matrix normalization")
+print("  - Proper tensor reshaping for graph operations")
