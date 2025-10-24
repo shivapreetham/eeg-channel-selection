@@ -9,10 +9,11 @@ End-to-end pipeline for automatic EEG channel selection in Motor Imagery BCI app
 ## Pipeline Overview
 
 ```
-1. EDA & Data Cleaning       → physionet_data_cleaning.ipynb
-2. Preprocessing              → physionet_preprocessing.py
-3. Model Training             → physionet_training.ipynb
-4. Results Analysis           → physionet_results_analysis.ipynb
+1. EDA                -> physionet_eda.ipynb
+2. Data Cleaning       → physionet_data_cleaning.ipynb
+3. Preprocessing              → physionet_preprocessing.py
+4. Model Training             → physionet_training.ipynb
+5. Results Analysis           → physionet_results_analysis.ipynb
 ```
 
 ---
@@ -32,9 +33,11 @@ jupyter notebook physionet_results_analysis.ipynb   # 2 mins
 
 ---
 
-## Step 1: EDA & Data Cleaning
+## Step 1: EDA -
+**File:** `physionet_eda.ipynb`
 
-**File:** `physionet_data_cleaning.ipynb`
+## Step 2: data cleaning - **File:** `physionet_eda.ipynb`
+**File:**  `physionet_data_cleaning.ipynb`
 
 | Cell | What It Does |
 |------|-------------|
