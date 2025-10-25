@@ -214,19 +214,6 @@ eeg-channel-selection/
     └── channel_selection_analysis/           ← Final plots and report
 ```
 
----
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "0 subjects trained" | Check preprocessing completed: `cat data/physionet/derived/physionet_preprocessed_index.csv` |
-| Out of memory | Reduce `batch_size: 16` or `max_subjects: 3` in config |
-| Unicode error in report | Already fixed! Run: `python fix_notebook_unicode.py` |
-| Training too slow | Check GPU: `torch.cuda.is_available()` should be `True` |
-
----
-
 ## Citation
 
 ```bibtex
