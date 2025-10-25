@@ -9,10 +9,11 @@ End-to-end pipeline for automatic EEG channel selection in Motor Imagery BCI app
 ## Pipeline Overview
 
 ```
-1. EDA & Data Cleaning       → physionet_data_cleaning.ipynb
-2. Preprocessing              → physionet_preprocessing.py
-3. Model Training             → physionet_training.ipynb
-4. Results Analysis           → physionet_results_analysis.ipynb
+1. EDA                        → physionet-eda.ipynb
+2. Data Cleaning              → physionet_data_cleaning.ipynb
+3. Preprocessing              → physionet_data_preprocessing.ipynb
+4. Model Training             → physionet_training.ipynb
+5. Results Analysis           → physionet_results_analysis.ipynb
 ```
 
 ---
@@ -24,15 +25,39 @@ End-to-end pipeline for automatic EEG channel selection in Motor Imagery BCI app
 pip install -r requirements.txt
 
 # Run pipeline in order
+jupyter notebook physionet-eda.ipynb                # 10 mins
 jupyter notebook physionet_data_cleaning.ipynb      # 20 mins
-python physionet_preprocessing.py                   # 30 mins
+jupyter notebook physionet_data_preprocessing.ipynb # 30 mins
 jupyter notebook physionet_training.ipynb           # 5.5 hours
 jupyter notebook physionet_results_analysis.ipynb   # 2 mins
 ```
 
 ---
 
-## Step 1: EDA & Data Cleaning
+## Step 1: EDA (Exploratory Data Analysis)
+
+**File:** `physionet-eda.ipynb`
+
+**Purpose:** Understand the PhysioNet dataset structure, visualize EEG signals, and explore data quality.
+
+| Cell | What It Does |
+|------|-------------|
+| 1 | Setup: Import libraries, configure data directories |
+| 2 | Download PhysioNet dataset (if not already downloaded) |
+| 3 | Load sample EEG files and explore structure |
+| 4 | Visualize raw EEG signals (time-domain) |
+| 5 | Analyze frequency content (power spectral density) |
+| 6 | Inspect motor imagery events (T1, T2) |
+| 7 | Check data quality across subjects |
+| 8 | Summary statistics and recommendations |
+
+**Output:** Understanding of dataset characteristics, quality issues, preprocessing needs
+
+**Duration:** ~10 minutes
+
+---
+
+## Step 2: Data Cleaning
 
 **File:** `physionet_data_cleaning.ipynb`
 
@@ -47,33 +72,36 @@ jupyter notebook physionet_results_analysis.ipynb   # 2 mins
 | 7 | Check data quality (bad channels, artifacts, statistics) |
 | 8 | Create data index CSV with subject/run/path information |
 
-**Output:** `data/physionet/raw/physionet_raw_index.csv`
+**Output:** `data/physionet/derived/physionet_good_runs.csv`
+
+**Duration:** ~20 minutes
 
 ---
 
-## Step 2: Preprocessing
+## Step 3: Preprocessing
 
-**File:** `physionet_preprocessing.py`
+**File:** `physionet_data_preprocessing.ipynb`
 
 | Section | What It Does |
 |---------|-------------|
 | Config | Set preprocessing parameters (filters, ICA, sampling) |
 | Load | Read raw .edf files |
 | Downsample | 160 Hz → 128 Hz |
-| Bandpass | Filter 0.5-50 Hz (remove drifts and high-freq noise) |
+| Bandpass | Filter 0.5-40 Hz (remove drifts and high-freq noise) |
 | Notch | Remove 50 Hz powerline interference |
 | Bad Channels | Detect and interpolate flat/noisy channels |
-| ICA | Remove eye blinks, heart beats, muscle artifacts |
-| Re-reference | Apply Common Average Reference (CAR) |
+| CAR | Apply Common Average Reference |
 | Save | Write preprocessed .fif files + index CSV |
 
-**Run:** `python physionet_preprocessing.py` (~30-60 mins)
+**Output:**
+- `data/physionet/derived/preprocessed/{subject}/{run}_preproc_raw.fif`
+- `data/physionet/derived/physionet_preprocessed_index.csv`
 
-**Output:** `data/physionet/derived/preprocessed/{subject}/{run}_preprocessed.fif`
+**Duration:** ~30 minutes
 
 ---
 
-## Step 3: Model Training
+## Step 4: Model Training
 
 **File:** `physionet_training.ipynb`
 
@@ -103,7 +131,7 @@ jupyter notebook physionet_results_analysis.ipynb   # 2 mins
 
 ---
 
-## Step 4: Results Analysis
+## Step 5: Results Analysis
 
 **File:** `physionet_results_analysis.ipynb`
 
@@ -165,15 +193,21 @@ jupyter notebook physionet_results_analysis.ipynb   # 2 mins
 ```
 eeg-channel-selection/
 ├── README.md                                 ← You are here
-├── physionet_data_cleaning.ipynb             ← Step 1
-├── physionet_preprocessing.py                ← Step 2
-├── physionet_training.ipynb                  ← Step 3
-├── physionet_results_analysis.ipynb          ← Step 4
+├── physionet-eda.ipynb                       ← Step 1: EDA
+├── physionet_data_cleaning.ipynb             ← Step 2: Data Cleaning
+├── physionet_data_preprocessing.ipynb        ← Step 3: Preprocessing
+├── physionet_training.ipynb                  ← Step 4: Training
+├── physionet_results_analysis.ipynb          ← Step 5: Analysis
+├── physionet_architecture_variants.ipynb     ← Optional: Compare architectures
+├── physionet_method_comparison.ipynb         ← Optional: Compare methods
 ├── models.py                                 ← EEG-ARNN model
 ├── train_utils.py                            ← Training utilities
 ├── data/physionet/
 │   ├── raw/                                  ← Raw .edf files
-│   └── derived/preprocessed/                 ← Preprocessed .fif files
+│   └── derived/
+│       ├── physionet_good_runs.csv           ← Cleaned run index
+│       ├── physionet_preprocessed_index.csv  ← Preprocessed run index
+│       └── preprocessed/                     ← Preprocessed .fif files
 └── results/
     ├── subject_results.csv                   ← Baseline accuracies
     ├── retrain_results.csv                   ← Channel selection results
@@ -209,11 +243,12 @@ eeg-channel-selection/
 ## Quick Reference
 
 **Time Requirements (5 subjects, fast mode):**
-- Step 1 (EDA): 20 mins
-- Step 2 (Preprocessing): 30 mins
-- Step 3 (Training): 5.5 hours
-- Step 4 (Analysis): 2 mins
-- **Total:** ~6 hours
+- Step 1 (EDA): 10 mins
+- Step 2 (Data Cleaning): 20 mins
+- Step 3 (Preprocessing): 30 mins
+- Step 4 (Training): 5.5 hours
+- Step 5 (Analysis): 2 mins
+- **Total:** ~6.5 hours
 
 **For Publication (20 subjects, 50 epochs, 3-fold CV):** ~24-48 hours
 
