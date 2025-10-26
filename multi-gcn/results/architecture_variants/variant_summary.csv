@@ -1,0 +1,4 @@
+variant,description,Mean Accuracy,Std Accuracy,Mean Time (s)
+multi2,3x (TFEM + 2-layer CARM) - 2 hops,0.6667,0.0,49.3641
+multi3,3x (TFEM + 3-layer CARM) - 3 hops,0.6667,0.0,65.1666
+baseline,3x (TFEM + 1-layer CARM),0.6339,0.0732,34.1859
