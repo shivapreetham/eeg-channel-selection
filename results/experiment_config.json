@@ -18,7 +18,8 @@
     "epochs": 10,
     "learning_rate": 0.001,
     "batch_size": 32,
-    "n_folds": 2
+    "n_folds": 2,
+    "patience": 8
   },
   "channel_selection": {
     "k_values": [
@@ -30,8 +31,15 @@
     ],
     "methods": [
       "ES",
-      "AS"
-    ]
+      "AS",
+      "Hybrid",
+      "Centrality",
+      "Diversity"
+    ],
+    "hybrid_alpha": 0.7,
+    "hybrid_beta": 0.3,
+    "centrality_power": 2,
+    "diversity_penalty": 0.6
   },
   "output": {
     "results_dir": "results",

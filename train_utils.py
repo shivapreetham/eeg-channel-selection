@@ -217,9 +217,16 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
     """
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=3, verbose=False
-    )
+
+    # Create scheduler compatibly across torch versions (some builds removed `verbose`)
+    try:
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=3, verbose=False
+        )
+    except TypeError:
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=3
+        )
 
     history = {
         'train_loss': [],
@@ -228,7 +235,7 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
         'val_acc': []
     }
 
-    best_val_acc = 0
+    best_val_acc = 0.0
     best_model_state = None
     epochs_no_improve = 0
 
@@ -241,11 +248,21 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
         history['val_loss'].append(val_loss)
         history['val_acc'].append(val_acc)
 
-        scheduler.step(val_loss)
+        # Step scheduler with metric when supported; fall back if scheduler API differs
+        try:
+            scheduler.step(val_loss)
+        except TypeError:
+            # Some scheduler variants expect no argument for step()
+            try:
+                scheduler.step()
+            except Exception:
+                # If stepping fails for some reason, ignore (non-fatal)
+                pass
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            best_model_state = model.state_dict().copy()
+            # store a CPU copy of the state dict to avoid device mismatch later
+            best_model_state = {k: v.cpu() if hasattr(v, 'cpu') else v for k, v in model.state_dict().items()}
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
@@ -253,9 +270,15 @@ def train_model(model, train_loader, val_loader, device, epochs=100, lr=0.001, p
         if epochs_no_improve >= patience:
             break
 
+    # If no improvement ever happened, fall back to current model weights
+    if best_model_state is None:
+        best_model_state = {k: v.cpu() if hasattr(v, 'cpu') else v for k, v in model.state_dict().items()}
+
+    # Load best weights into model (ensure keys match)
     model.load_state_dict(best_model_state)
 
     return history, best_model_state
+
 
 
 def cross_validate_subject(data, labels, num_channels, num_timepoints, num_classes,
