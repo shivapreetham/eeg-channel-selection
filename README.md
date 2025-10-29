@@ -1,244 +1,190 @@
-# EEG Channel Selection using Graph Neural Networks
+﻿# EEG Channel Selection for BCI (BCI Competition IV 2a)
 
-End-to-end pipeline for automatic EEG channel selection in Motor Imagery BCI applications using EEG-ARNN (Graph Neural Networks + CNN).
+This repository implements an end-to-end workflow for reducing the number of EEG channels required for motor imagery Brain-Computer Interface (BCI) systems. It combines classic signal processing with graph neural networks (EEG-ARNN) to keep accuracy high while using far fewer electrodes.
 
-**Key Result:** 76% channel reduction (15 instead of 64 channels) with only 2.3% accuracy drop.
-
----
-
-## Pipeline Overview
-
-```
-1. EDA                        → physionet-eda.ipynb
-2. Data Cleaning              → physionet_data_cleaning.ipynb
-3. Preprocessing              → physionet_data_preprocessing.ipynb
-4. Model Training             → physionet_training.ipynb
-5. Results Analysis           → physionet_results_analysis.ipynb
-```
+The project is organised around a set of reproducible Jupyter notebooks and helper modules. If you are joining the project for the first time, follow the steps below to set up your environment, download the data, and run the baseline and gated models.
 
 ---
 
-## Quick Start
+## Highlights
+
+- Works with the BCI Competition IV 2a dataset (PhysioNet mirror).
+- Produces channel-reduced classifiers that maintain accuracy within ~2-3 percent of the full 64-electrode setup.
+- Two training variants: baseline attention-based model and a gated attention model for ablation studies.
+- Rich documentation under `docs/` covering theory, preprocessing mathematics, and experimental notes.
+
+---
+
+## 1. Prerequisites
+
+- Operating system: Windows, macOS, or Linux.
+- Python 3.10+ and `pip`.
+- (Recommended) `conda` or `venv` for isolated environments.
+- JupyterLab or Jupyter Notebook.
+- At least 30 GB of free disk space for raw + processed data.
+
+Optional but helpful:
+- CUDA-capable GPU if you want to speed up training.
+- `mne-bids` installation if you plan to extend the preprocessing scripts.
+
+---
+
+## 2. Environment Setup
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Clone or download the repository
+git clone https://github.com/<your-user>/eeg-channel-selection.git
+cd eeg-channel-selection
 
-# Run pipeline in order
-jupyter notebook physionet-eda.ipynb                # 10 mins
-jupyter notebook physionet_data_cleaning.ipynb      # 20 mins
-jupyter notebook physionet_data_preprocessing.ipynb # 30 mins
-jupyter notebook physionet_training.ipynb           # 5.5 hours
-jupyter notebook physionet_results_analysis.ipynb   # 2 mins
+# Create a virtual environment (example with venv)
+python -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+
+# Install Python dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
----
-
-## Step 1: EDA (Exploratory Data Analysis)
-
-**File:** `physionet-eda.ipynb`
-
-**Purpose:** Understand the PhysioNet dataset structure, visualize EEG signals, and explore data quality.
-
-| Cell | What It Does |
-|------|-------------|
-| 1 | Setup: Import libraries, configure data directories |
-| 2 | Download PhysioNet dataset (if not already downloaded) |
-| 3 | Load sample EEG files and explore structure |
-| 4 | Visualize raw EEG signals (time-domain) |
-| 5 | Analyze frequency content (power spectral density) |
-| 6 | Inspect motor imagery events (T1, T2) |
-| 7 | Check data quality across subjects |
-| 8 | Summary statistics and recommendations |
-
-**Output:** Understanding of dataset characteristics, quality issues, preprocessing needs
-
-**Duration:** ~10 minutes
+If you are using Conda, create a new environment with `conda create -n eeg-channel-selection python=3.10` and activate it before installing the requirements.
 
 ---
 
-## Step 2: Data Cleaning
+## 3. Download the Dataset
 
-**File:** `physionet_data_cleaning.ipynb`
+All notebooks expect the BCI Competition IV 2a dataset to live under `data/physionet`. Start with:
 
-| Cell | What It Does |
-|------|-------------|
-| 1 | Setup: Import libraries, configure data directories |
-| 2 | Display PhysioNet dataset info (109 subjects, 4 tasks) |
-| 3 | Configure download parameters (subjects, paths) |
-| 4 | Download raw .edf files from PhysioNet (~10-20 mins) |
-| 5 | Load sample file, display channels and sampling rate |
-| 6 | Extract motor imagery events (T1=left, T2=right, T3=both, T4=feet) |
-| 7 | Check data quality (bad channels, artifacts, statistics) |
-| 8 | Create data index CSV with subject/run/path information |
+1. Open `physionet_data_cleaning.ipynb`.
+2. Run the download cells; they can fetch the data directly from PhysioNet (you need a PhysioNet account).
+3. The notebook will generate `data/physionet/raw/` with `.edf` files and metadata CSVs in `data/physionet/derived/`.
 
-**Output:** `data/physionet/derived/physionet_good_runs.csv`
-
-**Duration:** ~20 minutes
+You can also place existing downloads inside `data/physionet/raw/` and rerun the indexing cells to rebuild the metadata.
 
 ---
 
-## Step 3: Preprocessing
+## 4. Run the Pipeline
 
-**File:** `physionet_data_preprocessing.ipynb`
+Work through the notebooks in this order:
 
-| Section | What It Does |
-|---------|-------------|
-| Config | Set preprocessing parameters (filters, ICA, sampling) |
-| Load | Read raw .edf files |
-| Downsample | 160 Hz → 128 Hz |
-| Bandpass | Filter 0.5-40 Hz (remove drifts and high-freq noise) |
-| Notch | Remove 50 Hz powerline interference |
-| Bad Channels | Detect and interpolate flat/noisy channels |
-| CAR | Apply Common Average Reference |
-| Save | Write preprocessed .fif files + index CSV |
+1. **Exploration** - `physionet-eda.ipynb`
+   Inspect signals, events, and subject variability.
+2. **Cleaning** - `physionet_data_cleaning.ipynb`
+   Download data, flag unusable runs, and write `physionet_good_runs.csv`.
+3. **Preprocessing** - `physionet_data_preprocessing.ipynb`
+   Apply filtering, notch removal, bad-channel repair, and export `.fif` files.
+4. **Training (Baseline)** - `physionet_training_baseline.ipynb`
+   Run the default EEG-ARNN training loop and channel selection using attention scores.
+5. **Training (Gated Variant)** - `physionet_training_gated.ipynb`
+   Repeat training with an additional gating mechanism to compare performance and robustness.
+6. **Results & Reporting** - `physionet_results_analysis.ipynb`
+   Aggregate metrics, plot accuracy vs. electrode count, and export final figures.
 
-**Output:**
-- `data/physionet/derived/preprocessed/{subject}/{run}_preproc_raw.fif`
-- `data/physionet/derived/physionet_preprocessed_index.csv`
-
-**Duration:** ~30 minutes
+Additional analysis lives under `analysis/` for side-by-side comparisons (`gated-vs-baseline.ipynb`, `physionet_method_comparison.ipynb`).
 
 ---
 
-## Step 4: Model Training
+## 5. Notebook Walkthrough (File-wise Guide)
 
-**File:** `physionet_training.ipynb`
-
-**Config (Fast Mode):** 5 subjects, 10 epochs, 2-fold CV
-
-| Cell | What It Does |
-|------|-------------|
-| 1-2 | Import PyTorch, MNE, models; set device (CPU/GPU) |
-| 3 | Configure experiment (epochs=10, folds=2, subjects=5, k_values=[10,15,20,25]) |
-| 4 | Load preprocessed data index CSV |
-| 5 | Select subjects with >=10 motor imagery trials |
-| 6 | Define function to load subject data and extract epochs (-1s to +5s) |
-| 7 | **MAIN TRAINING:** For each subject: load data → train EEG-ARNN → extract adjacency matrix (~27 mins/subject) |
-| 8 | Apply channel selection (ES and AS) to get top-k channels for each k |
-| 9 | **RETRAIN:** For each subject/method/k: retrain with selected channels only (~4-5 hours total) |
-| 10 | Aggregate results, compute mean accuracy across subjects |
-| 11 | Plot accuracy distribution, subject ranking, trials vs accuracy |
-| 12 | Visualize adjacency matrix for best subject |
-| 13 | Export all results to CSV (subject_results, retrain_results, config) |
-
-**Output:**
-- `results/subject_results.csv` - Baseline accuracies (all 64 channels)
-- `results/retrain_results.csv` - Accuracies with selected channels
-- `results/adjacency_*.png` - Channel connectivity visualization
-
-**Duration:** ~5.5 hours (5 subjects, fast mode)
+| File | Purpose | Typical Outputs |
+| --- | --- | --- |
+| `physionet-eda.ipynb` | Exploratory data analysis, channel inspection, event timing checks. | Overview plots saved to `analysis/` (optional) |
+| `physionet_data_cleaning.ipynb` | Downloads raw EDF files, filters out noisy runs, builds `physionet_good_runs.csv`. | `data/physionet/raw/`, `data/physionet/derived/physionet_good_runs.csv` |
+| `physionet_data_preprocessing.ipynb` | Applies filtering, downsampling, bad-channel interpolation, saves `.fif`. | `data/physionet/derived/preprocessed/`, `physionet_preprocessed_index.csv` |
+| `physionet_training_baseline.ipynb` | Baseline EEG-ARNN training with attention-based channel scores. | `results/subject_results.csv`, `saved_models/baseline_*` |
+| `physionet_training_gated.ipynb` | Adds gating network on top of attention to compare robustness and sparsity. | `results/retrain_results.csv`, `saved_models/gated_*` |
+| `physionet_training_trial.ipynb` | Lightweight sandbox to test new hyperparameters or debug data issues without touching main runs. | Experiment-specific artifacts in `failed_trials/` |
+| `physionet_results_analysis.ipynb` | Collects baseline and retrain CSVs, builds summary plots and markdown reports. | `results/channel_selection_analysis/` |
+| `analysis/gated-vs-baseline.ipynb` | Direct comparison between the two training variants. | Comparative figures under `analysis/` |
+| `analysis/physionet_method_comparison.ipynb` | Benchmarks alternative channel selection strategies. | CSV/plots in `analysis/` |
 
 ---
 
-## Step 5: Results Analysis
+## 6. Supporting Modules and Docs
 
-**File:** `physionet_results_analysis.ipynb`
-
-**Purpose:** Analyze existing results (NO retraining - just visualization and reporting)
-
-| Cell | What It Does |
-|------|-------------|
-| 1 | Import libraries, create output directory |
-| 2 | Load baseline results CSV (accuracy with all 64 channels) |
-| 3 | Load retraining results CSV (accuracy with k=[10,15,20,25] channels) |
-| 4 | Aggregate results by method (ES/AS) and k value |
-| 5 | **Plot 1:** Accuracy vs k (main result - shows peak at k=15) |
-| 6 | **Plot 2:** Accuracy drop % vs k |
-| 7 | **Plot 3:** Channel reduction % vs accuracy trade-off |
-| 8 | Find optimal k (minimum k where accuracy >= 95% baseline) |
-| 9 | Show per-subject results breakdown |
-| 10 | Check if selected channels match motor cortex (C3, Cz, C4, etc.) |
-| 11 | Generate comprehensive markdown report with all findings |
-
-**Output:**
-- `results/channel_selection_analysis/accuracy_vs_k.png` ← Main visualization
-- `results/channel_selection_analysis/optimal_k_selection.csv`
-- `results/channel_selection_analysis/ANALYSIS_REPORT.md` ← Final report
-
-**Duration:** ~2 minutes
+- `models.py` - EEG-ARNN architectures, attention heads, and gating blocks.
+- `train_utils.py` - Training loops, PyTorch data utilities, checkpoint helpers.
+- `update_config.py` - Command line helper to keep notebook configs in sync.
+- `docs/COMPLETE_PIPELINE.md` - Narrative walk-through of the full pipeline.
+- `docs/glossary.md` - Terminology quick reference for EEG and graph learning.
+- `docs/preprocessing_pipeline_and_tools.md` - Detailed math for filtering, CAR, and ICA steps.
 
 ---
 
-## Key Results
+## 7. Key Outputs
 
-| Metric | All Channels | AS k=15 | Improvement |
-|--------|--------------|---------|-------------|
-| Channels | 64 | 15 | **76.6% reduction** |
-| Accuracy | 72.62% | 70.12% | -2.5% (acceptable) |
-| Setup time | ~20 mins | ~5 mins | **75% faster** |
+Running the full pipeline produces:
 
-**Selected Channels (AS k=15):** C3, Cz, C4, CP3, CPz, CP4, FC3, FCz, FC4, ... (motor cortex ✓)
+- `results/subject_results.csv` - baseline accuracy per subject with all channels.
+- `results/retrain_results.csv` - accuracy per subject after channel selection for each `k`.
+- `results/channel_selection_analysis/` - plots, summaries, and Markdown reports.
+- `saved_models/` - serialized PyTorch checkpoints for baseline and gated runs.
+- `data/physionet/derived/preprocessed/` - cleaned `.fif` files ready for downstream experiments.
 
----
-
-## Why Accuracy Decreases After k=15?
-
-**Pattern Observed:**
-- k=10: 61.2% (too few channels)
-- k=15: 70.5% ← **Peak (optimal)**
-- k=20: 67.1% (decreases!)
-- k=25: 65.3% (more decrease)
-
-**This is CORRECT behavior:**
-1. Channels 1-15: High-quality motor signals
-2. Channels 16+: Lower-quality, noisy signals
-3. Adding noisy channels → overfitting → worse accuracy
-4. Peak at optimal k **validates** channel selection works!
+Expect roughly 6-7 hours on CPU for the baseline fast configuration (5 subjects, 10 epochs, 2-fold cross-validation). The gated variant roughly doubles training time; use the notebooks' configuration cells to trade off runtime and accuracy.
 
 ---
 
-## File Structure
+## 8. Repository Map
 
 ```
 eeg-channel-selection/
-├── README.md                                 ← You are here
-├── physionet-eda.ipynb                       ← Step 1: EDA
-├── physionet_data_cleaning.ipynb             ← Step 2: Data Cleaning
-├── physionet_data_preprocessing.ipynb        ← Step 3: Preprocessing
-├── physionet_training.ipynb                  ← Step 4: Training
-├── physionet_results_analysis.ipynb          ← Step 5: Analysis
-├── physionet_architecture_variants.ipynb     ← Optional: Compare architectures
-├── physionet_method_comparison.ipynb         ← Optional: Compare methods
-├── models.py                                 ← EEG-ARNN model
-├── train_utils.py                            ← Training utilities
-├── data/physionet/
-│   ├── raw/                                  ← Raw .edf files
-│   └── derived/
-│       ├── physionet_good_runs.csv           ← Cleaned run index
-│       ├── physionet_preprocessed_index.csv  ← Preprocessed run index
-│       └── preprocessed/                     ← Preprocessed .fif files
-└── results/
-    ├── subject_results.csv                   ← Baseline accuracies
-    ├── retrain_results.csv                   ← Channel selection results
-    └── channel_selection_analysis/           ← Final plots and report
+|-- README.md
+|-- requirements.txt
+|-- models.py                   # EEG-ARNN architecture definitions
+|-- train_utils.py              # Training loops, data loaders, logging utilities
+|-- update_config.py            # Helper for reproducible experiment configs
+|-- physionet-eda.ipynb
+|-- physionet_data_cleaning.ipynb
+|-- physionet_data_preprocessing.ipynb
+|-- physionet_training_baseline.ipynb
+|-- physionet_training_gated.ipynb
+|-- physionet_training_trial.ipynb
+|-- physionet_results_analysis.ipynb
+|-- analysis/                   # Comparative notebooks and deep dives
+|-- docs/                       # Extended documentation (math, glossary, pipeline overview)
+|-- data/                       # Raw and processed EEG data (generated)
+|-- results/                    # Exported figures, CSVs, and reports (generated)
+|-- saved_models/               # Model checkpoints (generated)
+|-- failed_trials/              # Debugging artifacts when runs abort (generated)
+\-- trash/                      # Temporary scratch space (clean up regularly)
 ```
 
-## Citation
+If you are unsure where to start, skim `docs/COMPLETE_PIPELINE.md` and `docs/glossary.md` - they explain terminology and the high-level flow.
+
+---
+
+## 9. Tips for New Contributors
+
+- Keep notebooks lean: duplicate heavy experiments into `analysis/` so the main pipeline remains reproducible.
+- Use the `config` dictionaries in the training notebooks to manage folds, subjects, and GPU vs. CPU runs.
+- When adding new preprocessing steps, document them in `docs/preprocessing_pipeline_and_tools.md` and regenerate the downstream CSVs.
+- Before a big experiment, clear `failed_trials/` to make debugging output easier to interpret.
+
+---
+
+## 10. Citation
+
+If you use the channel-selection approach in publications, please cite:
 
 ```bibtex
 @article{sun2023graph,
   title={Graph Convolution Neural Network Based End-to-End Channel Selection},
   author={Sun, Banghua and Liu, Zhiyuan and Wu, Zongqing and Mu, Chaoxu and Li, Tiancheng},
   journal={IEEE Transactions on Industrial Informatics},
-  volume={19}, number={9}, pages={9314--9324}, year={2023}
+  volume={19},
+  number={9},
+  pages={9314--9324},
+  year={2023}
 }
 ```
 
----
-
-## Quick Reference
-
-**Time Requirements (5 subjects, fast mode):**
-- Step 1 (EDA): 10 mins
-- Step 2 (Data Cleaning): 20 mins
-- Step 3 (Preprocessing): 30 mins
-- Step 4 (Training): 5.5 hours
-- Step 5 (Analysis): 2 mins
-- **Total:** ~6.5 hours
-
-**For Publication (20 subjects, 50 epochs, 3-fold CV):** ~24-48 hours
+You can also cite this repository directly (add DOI or commit hash if minted).
 
 ---
 
-**Status:** ✓ Pipeline Complete | **Last Updated:** 2025-10-24
+## 11. Need Help?
+
+- Browse the FAQs and walkthroughs in `docs/`.
+- Open an issue describing your environment and the exact cell that failed.
+- Reach out with pull requests if you improve preprocessing, add new selection strategies, or discover better hyperparameters.
+
+Happy experimenting!
