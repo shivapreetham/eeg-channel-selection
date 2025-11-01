@@ -1,0 +1,1 @@
+        "        final_importance = 0.5 * channel_scores + 0.5 * importance",
