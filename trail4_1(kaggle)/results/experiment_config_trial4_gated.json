@@ -1,0 +1,55 @@
+{
+  "data": {
+    "preprocessed_dir": "/kaggle/input/eeg-preprocessed-data/derived/preprocessed",
+    "index_file": "/kaggle/input/eeg-preprocessed-data/derived/physionet_preprocessed_index.csv",
+    "selected_classes": [
+      1,
+      2
+    ],
+    "tmin": -1.0,
+    "tmax": 5.0,
+    "baseline": [
+      -0.5,
+      0
+    ]
+  },
+  "model": {
+    "hidden_dim": 40,
+    "epochs": 20,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "n_folds": 2,
+    "patience": 8
+  },
+  "gating": {
+    "enabled": true,
+    "l1_lambda": 0.001,
+    "gate_init": 0.9
+  },
+  "channel_selection": {
+    "k_values": [
+      10,
+      15,
+      20,
+      25,
+      "all"
+    ],
+    "methods": [
+      "ES",
+      "AS"
+    ]
+  },
+  "output": {
+    "results_dir": "results",
+    "models_dir": "saved_models",
+    "gated_results_file": "trial4_gated_subject_results.csv",
+    "gate_importance_file": "trial4_gate_importances.csv",
+    "channel_selection_results_file": "trial4_channel_selection_results.csv",
+    "retrain_results_file": "trial4_retrain_results.csv",
+    "baseline_results_file": "subject_results.csv",
+    "comparison_file": "trial4_gated_vs_baseline.csv",
+    "results_summary_figure": "trial4_gated_results_summary.png",
+    "adjacency_prefix": "trial4_adjacency"
+  },
+  "max_subjects": 10
+}
