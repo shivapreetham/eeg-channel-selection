@@ -1,0 +1,216 @@
+
+1
+
+Automatic Zoom
+A-ViT: Adaptive Tokens for Efficient Vision Transformer
+Hongxu Yin Arash Vahdat Jose M. Alvarez Arun Mallya Jan Kautz Pavlo Molchanov
+NVIDIA
+{dannyy, avahdat, josea, amallya, jkautz, pmolchanov}@nvidia.com
+TRkeQ UePRYaO & UeRUg.
+0.0
+0.0
+TRkeQ haOWiQg
+TUaQVfRUPeU  BORck
+TRkeQ DeSWhV
+La\eU 1
+MeaQ-fieOd
+aggUegaWiRQ
+TaVk head
+TRkeQV UePaiQ: 197 TRkeQV UePaiQ: 190
+0.0
+0.0
+0.0
+. 
+. 
+.
+0.0
+0.1
+0.0
+1.0
+0.
+. 
+. .
+0.0
+0.1
+0.0
+0.
+TRkeQV UePaiQ: 10
+0.2
+0.2
+. . .
+AdaSWiYe HaOWiQg
+TUaQVfRUPeU  BORck
+AdaSWiYe HaOWiQg
+TUaQVfRUPeU  BORck
+AdaSWiYe HaOWiQg
+HaOWiQg SURbabiOiW\ 
+TRkeQi]aWiRQ
+. 
+. 
+.
+. 
+. 
+.
+EPbeddiQg
+COaVV WRkeQ
+PePRU\
+La\eU 2 La\eU K
+IPageNeW1K E[aPSOeV fRU AdaSWiYe TRkeQV
+Figure 1. We introduce A-ViT, a method to enable adaptive token computation for vision transformers. We augment the vision transformer
+block with adaptive halting module that computes a halting probability per token. The module reuses the parameters of existing blocks
+and it borrows a single neuron from the last dense layer in each block to compute the halting probability, imposing no extra parameters or
+computations. A token is discarded once reaching the halting condition. Via adaptively halting tokens, we perform dense compute only on
+the active tokens deemed informative for the task. As a result, successive blocks in vision transformers gradually receive less tokens, leading
+to faster inference. Learnt token halting vary across images, yet align surprisingly well with image semantics (see examples above and more
+in Fig. 3). This results in immediate, out-of-the-box inference speedup on off-the-shelf computational platform.
+Abstract
+We introduce A-ViT, a method that adaptively adjusts
+the inference cost of vision transformer (ViT) for images of
+different complexity. A-ViT achieves this by automatically
+reducing the number of tokens in vision transformers that
+are processed in the network as inference proceeds. We refor-
+mulate Adaptive Computation Time (ACT [17]) for this task,
+extending halting to discard redundant spatial tokens. The
+appealing architectural properties of vision transformers
+enables our adaptive token reduction mechanism to speed
+up inference without modifying the network architecture or
+inference hardware. We demonstrate that A-ViT requires no
+extra parameters or sub-network for halting, as we base the
+learning of adaptive halting on the original network parame-
+ters. We further introduce distributional prior regularization
+that stabilizes training compared to prior ACT approaches.
+On the image classification task (ImageNet1K), we show
+that our proposed A-ViT yields high efficacy in filtering in-
+formative spatial features and cutting down on the overall
+compute. The proposed method improves the throughput of
+DeiT-Tiny by 62% and DeiT-Small by 38% with only 0.3%
+accuracy drop, outperforming prior art by a large margin.
+Project page at https://a-vit.github.io/.
+1. Introduction
+Transformers have emerged as a popular class of neural
+network architecture that computes network outputs using
+highly expressive attention mechanisms. Originated from the
+natural language processing (NLP) community, they have
+been shown effective in solving a wide range of problems in
+NLP, such as machine translation, representation learning,
+and question answering [2, 9, 22, 35, 44]. Recently, vision
+transformers have gained an increasing popularity in the vi-
+sion community and they have been successfully applied to a
+broad range of vision applications, such as image classifica-
+tion [11,16,32,43,48,55], object detection [3,7,39], image
+generation [20,21], and semantic segmentation [28,52]. The
+most popular paradigm remains when vision transformers
+form tokens via splitting an image into a series of ordered
+patches and perform inter-/intra-calculations between tokens
+to solve the underlying task. Processing an image with
+vision transformers remains computationally expensive, pri-
+marily due to the quadratic number of interactions between
+tokens [36,40,53]. Therefore, deploying vision transformers
+on data processing clusters or edge devices is challenging
+amid significant computational and memory resources.
+The main focus of this paper is to study how to automati-10809
+cally adjust the compute in visions transformers as a function
+of the complexity of the input image. Almost all mainstream
+vision transformers have a fixed cost during inference that
+is independent from the input. However, the difficulty of a
+prediction task varies with the complexity of the input image.
+For example, classifying a car versus a human from a single
+image with a homogeneous background is relatively simple;
+while differentiating between different breeds of dogs on a
+complex background is more challenging. Even within a
+single image, the patches that contain detailed object fea-
+tures are far more informative compared to those from the
+background. Inspired by this, we develop a framework that
+adaptively adjusts the compute used in vision transformers
+based on the input.
+The problem of input-dependent inference for neural net-
+works has been studied in prior work. Graves [17] proposed
+adaptive computation time (ACT) to represent the output
+of the neural module as a mean-field model defined by a
+halting distribution. Such formulation relaxes the discrete
+halting problem to a continuous optimization problem that
+minimizes an upper bound on the total compute. Recently,
+stochastic methods were also applied to solve this problem,
+leveraging geometric-modelling of exit distribution to en-
+able early halting of network layers [1]. Figurnov et al. [ 13]
+proposed a spatial extension of ACT that halts convolutional
+operations along the spatial cells rather than the residual
+layers. This approach does not lead to faster inference as
+high-performance hardware still relies on dense computa-
+tions. However, we show that the vision transformer’s uni-
+form shape and tokenization enable an adaptive computation
+method to yield a direct speedup on off-the-shelf hardware,
+surpassing prior work in efficiency-accuracy tradeoff.
+In this paper, we propose an input-dependent adaptive
+inference mechanism for vision transformers. A naive ap-
+proach is to follow ACT, where the computation is halted for
+all tokens in a residual layer simultaneously. We observe that
+this approach reduces the compute by a small margin with
+an undesirable accuracy loss. To resolve this, we propose
+A-ViT, a spatially adaptive inference mechanism that halts
+the compute of different tokens at different depths, reserv-
+ing compute for only discriminative tokens in a dynamic
+manner. Unlike point-wise ACT within convolutional fea-
+ture maps [13], our spatial halting is directly supported by
+high-performance hardware since the halted tokens can be
+efficiently removed from the underlying computation. More-
+over, entire halting mechanism can be learnt using existing
+parameters within the model, without introducing any extra
+parameters. We also propose a novel approach to target dif-
+ferent computational budgets by enforcing a distributional
+prior on the halting probability. We empirically observe that
+the depth of the compute is highly correlated with the object
+semantics, indicating that our model can ignore less relevant
+background information (see quick examples in Fig. 1 and
+more examples in Fig. 3). Our proposed approach signifi-
+cantly cuts down the inference cost — A-ViT improves the
+throughput of DEIT-Tiny by 62% and DEIT-Small by 38%
+with only 0.3% accuracy drop on ImageNet1K.
+Our main contributions are as follows:
+¥ We introduce a method for input-dependent inference
+in vision transformers that allows us to halt the compu-
+tation for different tokens at different depth.
+¥ We base learning of adaptive token halting on the exis-
+tent embedding dimensions in the original architecture
+and do not require extra parameters or compute for
+halting.
+¥ We introduce distributional prior regularization to guide
+halting towards a specific distribution and average token
+depth that stabelizes ACT training.
+¥ We analyze the depth of varying tokens across different
+images and provide insights into the attention mecha-
+nism of vision transformer.
+¥ We empirically show that the proposed method im-
+proves throughput by up to 62% on hardware with mi-
+nor drop in accuracy.
+2. Related Work
+There are a number of ways to improve the efficiency of
+transformers including weight sharing across transformer
+blocks [26], dynamically controlling the attention span of
+each token [5,40], allowing the model to output the result
+in an earlier transformer block [38,56], and applying prun-
+ing [53]. A number of methods have aimed at reducing
+the computationally complexity of transformers by reducing
+the quadratic interactions between tokens [6,23,24,41,47].
+We focus on approaches related to adaptive inference that
+depends on the input image complexity. A more detailed
+analysis of the literature is present in [19].
+Special architectures. One way is to change the architec-
+ture of the model to support adaptive computations [4,14,15,
+18,25,27,30,37,42,51,54]. For example, models that repre-
+sent a neural network as a fixed-point function can have the
+property of adaptive computation by default. Such models
+compute the difference to the internal state and, when ap-
+plied over multiple iterations, converge towards the solution
+(desired output). For example, neural ordinary differential
+equations (ODEs) use a new architecture with repetitive com-
+putation to learn the dynamics of the process [10]. Using
+ODEs requires a specific solver, is often slower than fix depth
+models and requires adding extra constraints on the model
+design. [54] learns a set of classifiers with different resolu-
+tions executed in order; computation stops when confidence
+of the model is above the threshold. [27] proposed a residual
+variant with shared weights and a halting mechanism.
+Stochastic and reinforcement learning (RL) methods.
+The depth of a residual neural network can be changed dur-
+ing inference by skipping a subset of residual layers. This10810
