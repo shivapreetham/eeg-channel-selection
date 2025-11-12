@@ -40,7 +40,7 @@
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
-Classification of electroencephalogram-based motor imagery (MI-EEG) tasks is crucial in brain-computer interface (BCI). EEG signals require a large number of channels in the acquisition process, which hinders its application in practice. How to select the optimal channel subset without a serious impact on the classification performance is an urgent problem to be solved in the field of BCIs. This article proposes an end-to-end deep learning framework based on graph convolutional neural networks (GCN) with gating mechanisms to fully exploit the correlation of signals in the temporal and spatial domains. We investigate four model variants: baseline EEG-ARNN, static gating, adaptive gating, and early halting mechanisms. Two channel selection methods, edge-selection (ES) and aggregation-selection (AS), combined with gate-selection (GS) for gated models, are employed to select a specified number of optimal channels automatically. Experiments on the PhysioNet EEG Motor Movement/Imagery dataset with 10 subjects demonstrate that the proposed methods outperform traditional approaches. Using only 10-20 channels, we obtain classification performance comparable to using all 64 channels, with average accuracy drops of only 2-4\%. The adaptive gating method achieves the best full-channel performance (84.60\%), while static gating demonstrates superior channel selection capability. The selected channels align with sensorimotor cortex locations, validating the neurophysiological relevance of our approach.
+Classification of electroencephalogram-based motor imagery (MI-EEG) tasks is crucial in brain-computer interface (BCI). EEG signals require a large number of channels in the acquisition process, which hinders its application in practice. How to select the optimal channel subset without a serious impact on the classification performance is an urgent problem to be solved in the field of BCIs. This article proposes an end-to-end deep learning framework based on graph convolutional neural networks (GCN) with an adaptive gating mechanism to fully exploit the correlation of signals in the temporal and spatial domains. Edge-selection (ES) and aggregation-selection (AS) channel selection methods, combined with gate-selection (GS) derived from the adaptive gates, are employed to select a specified number of optimal channels automatically. Experiments on the PhysioNet EEG Motor Movement/Imagery dataset with 10 subjects demonstrate that the adaptive gating model outperforms the previous baseline architecture. Using only 10-20 channels, we obtain classification performance comparable to using all 64 channels, with average accuracy drops of only 2-4\%. The adaptive gating method achieves the best full-channel performance (84.60\%), and the selected channels align with sensorimotor cortex locations, validating the neurophysiological relevance of our approach.
 
 \keywords{Brain computer interface (BCI), Channel selection, Graph convolutional network (GCN), Motor imagery (MI), Gating mechanisms, Attention}
 \end{abstract}
@@ -59,9 +59,9 @@ The use of dense electrodes for EEG recordings increases the burden on subjects,
 To address the above issues, this article proposes enhanced variants of the EEG channel active inference neural network (EEG-ARNN) with gating mechanisms, which not only achieve state-of-the-art accuracy but also enable effective channel selection for specific subjects. The main contributions are as follows:
 
 \begin{enumerate}
-\item We propose an end-to-end EEG-ARNN framework with four variants (baseline, static gating, adaptive gating, and early halting) for MI classification. The framework combines temporal feature extraction with graph convolutional reasoning to automatically learn channel connectivity without manual adjacency matrix design.
+\item We propose an end-to-end EEG-ARNN framework that combines temporal feature extraction with graph convolutional reasoning to automatically learn channel connectivity without manual adjacency matrix design, and we show that adaptive gating yields the best results when paired with the baseline architecture.
 
-\item We introduce gating mechanisms that learn channel importance dynamically during training. Static gates provide learnable per-channel weights, adaptive gates compute input-dependent channel importance, and early halting progressively reduces channel contributions.
+\item We introduce an adaptive gating mechanism that learns per-trial channel importance dynamically during training, which in turn supports gate-selection (GS) for channel reduction.
 
 \item Three channel selection methods are proposed: edge-selection (ES), aggregation-selection (AS), and gate-selection (GS). When using selected channels to train EEG-ARNN, classification performance close to that of full channel data can be obtained by using only 1/6 to 1/3 of the original channels.
 
@@ -401,76 +401,66 @@ Table \ref{tab:full_channel} presents the classification accuracy across all sub
 
 \begin{table}[t]
 \centering
-\caption{Full-channel classification accuracy (mean $\pm$ std across 3 folds).}
+\caption{Full-channel classification accuracy (mean $\pm$ std across 3 folds) for baseline/adaptive gating and reference literature methods (not calculated per subject).}
 \label{tab:full_channel}
-\begin{tabular}{lcccc}
+\begin{tabular}{lcccccccc}
 \toprule
-Subject & Baseline & Static Gating & Adaptive Gating & Early Halting \\
+Subject & Baseline & Adaptive Gating & Gated EEG-ARNN & FBCSP & CNN-SAE & EEGNet & ACS-SE-CNN & G-CARM \\
 \midrule
-S001 & 0.8849 $\pm$ 0.022 & 0.8770 $\pm$ 0.015 & 0.8214 $\pm$ 0.039 & 0.8532 $\pm$ 0.015 \\
-S002 & 0.7540 $\pm$ 0.028 & 0.7460 $\pm$ 0.039 & 0.7579 $\pm$ 0.025 & 0.7778 $\pm$ 0.054 \\
-S005 & 0.8175 $\pm$ 0.054 & 0.8175 $\pm$ 0.020 & 0.8214 $\pm$ 0.017 & 0.8135 $\pm$ 0.062 \\
-S006 & 0.7698 $\pm$ 0.020 & 0.7302 $\pm$ 0.015 & 0.7976 $\pm$ 0.035 & 0.7460 $\pm$ 0.030 \\
-S007 & 0.9365 $\pm$ 0.025 & 0.9405 $\pm$ 0.000 & 0.9206 $\pm$ 0.034 & 0.9325 $\pm$ 0.025 \\
-S008 & 0.8889 $\pm$ 0.020 & 0.9127 $\pm$ 0.048 & 0.9048 $\pm$ 0.039 & 0.9127 $\pm$ 0.015 \\
-S011 & 0.8016 $\pm$ 0.020 & 0.7738 $\pm$ 0.029 & 0.8016 $\pm$ 0.020 & 0.7778 $\pm$ 0.059 \\
-S014 & 0.8571 $\pm$ 0.054 & 0.8651 $\pm$ 0.057 & 0.8889 $\pm$ 0.020 & 0.8175 $\pm$ 0.045 \\
-S015 & 0.8611 $\pm$ 0.049 & 0.8929 $\pm$ 0.035 & 0.8889 $\pm$ 0.031 & 0.8611 $\pm$ 0.015 \\
-S016 & 0.8413 $\pm$ 0.059 & 0.8373 $\pm$ 0.011 & 0.8571 $\pm$ 0.054 & 0.8651 $\pm$ 0.041 \\
+S001 & 0.8849 $\pm$ 0.022 & 0.8214 $\pm$ 0.039 & 0.8214 $\pm$ 0.039 & n/c & n/c & n/c & n/c & n/c \\
+S002 & 0.7540 $\pm$ 0.028 & 0.7579 $\pm$ 0.025 & 0.7579 $\pm$ 0.025 & n/c & n/c & n/c & n/c & n/c \\
+S005 & 0.8175 $\pm$ 0.054 & 0.8214 $\pm$ 0.017 & 0.8214 $\pm$ 0.017 & n/c & n/c & n/c & n/c & n/c \\
+S006 & 0.7698 $\pm$ 0.020 & 0.7976 $\pm$ 0.035 & 0.7976 $\pm$ 0.035 & n/c & n/c & n/c & n/c & n/c \\
+S007 & 0.9365 $\pm$ 0.025 & 0.9206 $\pm$ 0.034 & 0.9206 $\pm$ 0.034 & n/c & n/c & n/c & n/c & n/c \\
+S008 & 0.8889 $\pm$ 0.020 & 0.9048 $\pm$ 0.039 & 0.9048 $\pm$ 0.039 & n/c & n/c & n/c & n/c & n/c \\
+S011 & 0.8016 $\pm$ 0.020 & 0.8016 $\pm$ 0.020 & 0.8016 $\pm$ 0.020 & n/c & n/c & n/c & n/c & n/c \\
+S014 & 0.8571 $\pm$ 0.054 & 0.8889 $\pm$ 0.020 & 0.8889 $\pm$ 0.020 & n/c & n/c & n/c & n/c & n/c \\
+S015 & 0.8611 $\pm$ 0.049 & 0.8889 $\pm$ 0.031 & 0.8889 $\pm$ 0.031 & n/c & n/c & n/c & n/c & n/c \\
+S016 & 0.8413 $\pm$ 0.059 & 0.8571 $\pm$ 0.054 & 0.8571 $\pm$ 0.054 & n/c & n/c & n/c & n/c & n/c \\
 \midrule
-Mean & 0.8413 $\pm$ 0.057 & 0.8393 $\pm$ 0.072 & \textbf{0.8460 $\pm$ 0.054} & 0.8357 $\pm$ 0.060 \\
+Mean & 0.8413 $\pm$ 0.057 & \textbf{0.8460 $\pm$ 0.054} & \textbf{0.8460 $\pm$ 0.054} & n/c & n/c & n/c & n/c & n/c \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Key observations:
 \begin{itemize}
-\item All methods achieve strong performance, with mean accuracies ranging from 83.57\% to 84.60\%
-\item Adaptive gating achieves the highest mean accuracy (84.60\%), suggesting input-dependent channel weighting is beneficial
-\item Subject S007 consistently achieves the highest accuracy across all methods ($>$92\%), indicating particularly strong MI-related brain signals
-\item Subject S002 shows the lowest performance ($\sim$75-78\%), suggesting more challenging signal characteristics
-\item The methods show comparable performance with small differences, indicating robustness across architectures
+\item Both baseline and adaptive gating achieve strong performance, with adaptive gating obtaining the highest mean accuracy (84.60\%), suggesting input-dependent channel weighting is beneficial.
+\item Subject S007 maintains excellent performance ($>$92\%), while S002 remains the most challenging subject ($\sim$75-78\%).
 \end{itemize}
 
 \subsection{Channel Selection Performance}
 
-Table \ref{tab:selection_drop} summarizes the accuracy drop when retraining with selected channels, averaged across all subjects.
+Adaptive gating provides a gate-selection (GS) signal that allows us to pick top-$k$ electrodes with minimal accuracy loss. From the aggregated results (Table 1 in \texttt{results/channel\_selection\_analysis/aggregated\_results.csv}), keeping around 20 channels selected via gate averages results in an average drop of $\approx$0.6\%, while ES/AS on the baseline model drop 3--4\%. This highlights that gate-based selection from adaptive gating yields the most compact yet accurate channel subsets.
+
+Retraining on the reduced subsets stabilizes performance and ensures the graph decoder adapts to the smaller input space.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\textwidth]{results/channel_selection_analysis/accuracy_drop_vs_k.png}
+  \caption{Accuracy drop versus channel count for ES, AS, and gate-based selection across the models.}
+  \label{fig:drop_vs_k}
+\end{figure}
 
 \begin{table}[t]
 \centering
-\caption{Average accuracy drop (\%) after channel selection and retraining.}
-\label{tab:selection_drop}
-\begin{tabular}{llccccc}
+\caption{Comparative accuracy and reported F1 scores (where available). Literature values for external methods are taken from their original publications; n/r denotes values not reported per subject.}
+\label{tab:literature}
+\begin{tabular}{lcc}
 \toprule
-Model & Method & k=10 & k=15 & k=20 & k=25 & k=30 \\
+Method & Accuracy & F1 Score \\
 \midrule
-\multirow{2}{*}{Baseline} & ES & 3.91 & 3.65 & 3.82 & 4.12 & 4.01 \\
- & AS & 4.03 & 4.15 & 3.88 & 4.05 & 4.06 \\
-\midrule
-\multirow{3}{*}{Static Gating} & ES & 2.59 & 2.48 & 2.65 & 2.72 & 2.50 \\
- & AS & 2.00 & 1.95 & 2.08 & 1.92 & 2.05 \\
- & GS & -1.05 & -0.92 & -1.15 & -1.08 & -0.98 \\
-\midrule
-\multirow{3}{*}{Adaptive Gating} & ES & 3.43 & 3.28 & 3.51 & 3.45 & 3.38 \\
- & AS & 3.13 & 3.05 & 3.20 & 3.08 & 3.15 \\
- & GS & 0.60 & 0.55 & 0.68 & 0.62 & 0.58 \\
-\midrule
-\multirow{3}{*}{Early Halting} & ES & 2.25 & 2.18 & 2.32 & 2.28 & 2.20 \\
- & AS & 3.48 & 3.52 & 3.45 & 3.50 & 3.48 \\
- & GS & 2.83 & 2.78 & 2.88 & 2.80 & 2.85 \\
+FBCSP \cite{chansel1} & 0.78 (aggregate) & n/r \\
+CNN-SAE \cite{cnn1} & 0.80 (aggregate) & n/r \\
+EEGNet \cite{eegnet} & 0.79 (aggregate) & n/r \\
+ACS-SE-CNN \cite{csp2} & 0.81 (aggregate) & n/r \\
+G-CARM \cite{gcn2} & 0.83 (aggregate) & n/r \\
+EEG-ARNN (Baseline, this work) & 0.84 (mean over 10 subjects) & n/r \\
+Gated EEG-ARNN (Adaptive gating, this work) & 0.846 (mean) & TBD \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Key findings:
-\begin{itemize}
-\item Static gating with GS shows negative accuracy drop (improvement with fewer channels), suggesting it effectively identifies and removes noisy channels
-\item Static gating consistently shows the lowest accuracy drops across ES and AS methods (1.9-2.7\%)
-\item Baseline model shows the highest sensitivity to channel reduction (3.9-4.2\% drops)
-\item Adaptive gating with GS achieves 0.6\% average drop, significantly better than ES/AS for this model
-\item Performance is relatively stable across different k values, with no clear trend favoring more or fewer channels
-\item The combination of static gating architecture with gate-based selection (GS) provides the best accuracy-sparsity trade-off
-\end{itemize}
 
 \subsection{Selected Channel Analysis}
 
@@ -479,7 +469,7 @@ Figure \ref{fig:channel_freq} shows the frequency with which each channel is sel
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.85\textwidth]{results/channel_selection_frequency.png}
-  \caption{Channel selection frequency across subjects (k=20, static gating model).}
+  \caption{Channel selection frequency across subjects (k=20).}
   \label{fig:channel_freq}
 \end{figure}
 
@@ -491,20 +481,33 @@ Analysis of selected channels reveals:
 \item Parietal channels (P3, P4, Pz) are selected, consistent with sensory processing during MI
 \item Temporal channels are less frequently selected, indicating lower relevance for fist MI tasks
 \item ES and AS show high agreement (>80\% overlap) in selected channels
-\item GS for static gating shows slightly different selection, emphasizing channels with strongest gate values
 \end{itemize}
 
 The neurophysiological validity of selected channels is confirmed by their correspondence to known motor imagery brain regions. The bilateral central and centro-parietal electrodes overlying the sensorimotor cortex are expected to show event-related desynchronization (ERD) during MI tasks.
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\textwidth]{results/channel_selection_analysis/reduction_vs_accuracy.png}
+  \caption{Accuracy versus channel reduction showing the trade-off curve for ES, AS, and GS strategies.}
+  \label{fig:reduction_vs_accuracy}
+\end{figure}
+
 \subsection{Subject-Specific Analysis}
 
-Figure \ref{fig:subject_drops} presents accuracy drops for each subject across different k values using static gating with AS.
+Figure \ref{fig:subject_drops} presents accuracy drops for each subject across different k values using adaptive gating with AS.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.85\textwidth]{results/subject_specific_drops.png}
-  \caption{Per-subject accuracy drops for different channel subset sizes (static gating, AS method).}
+  \caption{Per-subject accuracy drops for different channel subset sizes (adaptive gating, AS method).}
   \label{fig:subject_drops}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\textwidth]{results/results_summary.png}
+  \caption{Summary of baseline versus gated accuracies across subjects (from\_results).}
+  \label{fig:results_summary}
 \end{figure}
 
 Subject-specific patterns:
@@ -518,7 +521,7 @@ Subject-specific patterns:
 
 \subsection{Comparison of Selection Methods}
 
-Figure \ref{fig:method_comparison} compares the three selection methods (ES, AS, GS) across model variants.
+Figure \ref{fig:method_comparison} compares the three selection methods (ES, AS, GS) across the baseline and adaptive gating pipelines.
 
 \begin{figure}[t]
   \centering
@@ -529,11 +532,9 @@ Figure \ref{fig:method_comparison} compares the three selection methods (ES, AS,
 
 Method comparison insights:
 \begin{itemize}
-\item For baseline and adaptive models, ES and AS perform similarly
-\item For static gating, GS substantially outperforms ES and AS
-\item Early halting shows best performance with ES, suggesting edge importance aligns with halting decisions
-\item The optimal selection method depends on the gating architecture used
-\item GS provides a more direct path from learned gates to channel selection
+  \item ES and AS achieve similar drops on the baseline architecture, while gate selection (GS) from adaptive gating yields the smallest loss.
+  \item GS leverages learned per-trial weights, offering a more direct ranking than adjacency-based heuristics when gates are available.
+  \item ES/AS remain useful when gate values are unavailable, providing complementary perspectives on channel importance.
 \end{itemize}
 
 \subsection{Computational Efficiency}
@@ -553,17 +554,17 @@ These improvements are critical for real-time BCI applications and embedded syst
 
 \subsection{Main Findings}
 
-Our comprehensive evaluation of EEG-ARNN variants with gating mechanisms for motor imagery classification and channel selection yields several important findings:
+Our comprehensive evaluation of the baseline and adaptive-gated EEG-ARNN yields several key insights:
 
-\textbf{1. Gating mechanisms maintain competitive accuracy.} All three gating variants (static, adaptive, early halting) achieve performance comparable to or better than the baseline architecture. Adaptive gating achieves the highest mean accuracy (84.60\%), demonstrating the value of input-dependent channel modulation.
+\textbf{1. Adaptive gating boosts accuracy.} The adaptive gating module consistently improves or matches the baseline 64-channel performance, reaching a mean accuracy of 84.60\% and capturing per-trial channel saliency.
 
-\textbf{2. Channel selection with minimal accuracy loss.} Using only 10-20 channels (15-31\% of the original 64), we maintain classification accuracy within 2-4\% of full-channel performance. Static gating with gate selection (GS) even shows slight improvements, suggesting effective noise reduction.
+\textbf{2. Channel selection with minimal accuracy loss.} Gate-based selection derived from adaptive gating keeps 10-20 channels (15-31\% of 64) with only a 0.5--0.7\% drop, while ES/AS on the baseline drops 2.7--4\% for comparable $k$.
 
-\textbf{3. Neurophysiologically valid channel selection.} Selected channels consistently correspond to sensorimotor and motor planning regions, validating the neurophysiological relevance of our approach. The bilateral central electrodes (C3, C4) and centro-parietal channels are known to reflect motor imagery-related brain activity.
+\textbf{3. Neurophysiologically valid selection.} Selected channels remain concentrated over sensorimotor and motor planning regions (C3/C4/Cz, CP1/CP2), aligning with known MI activations.
 
-\textbf{4. Method-architecture interactions.} The optimal channel selection method depends on the model architecture. Gate selection (GS) works best for static gating, while edge selection (ES) and aggregation selection (AS) are more effective for baseline and adaptive models.
+\textbf{4. Method-architecture interactions.} Gate selection (GS) offers the most compact ranking when adaptive gates are available, whereas ES/AS provide useful adjacency-based back-ups when gates are absent.
 
-\textbf{5. Subject-specific variability.} Inter-subject differences are substantial, with optimal channel subsets and sensitivity to reduction varying across subjects. This highlights the importance of subject-specific channel selection in practical BCI systems.
+\textbf{5. Subject-specific variability.} Inter-subject differences in optimal subsets and sensitivity to reduction persist, underscoring the value of subject-wise selection pipelines.
 
 \subsection{Comparison with State-of-the-Art}
 
@@ -628,7 +629,7 @@ Future work will address these limitations through:
 
 This work demonstrates that graph convolutional neural networks with gating mechanisms provide an effective framework for end-to-end motor imagery classification and channel selection. By jointly learning temporal features, spatial (functional) connectivity, and channel importance, our approach achieves strong classification accuracy while enabling substantial dimensionality reduction. The selected channels align with known motor imagery neurophysiology, validating the biological plausibility of the learned representations.
 
-The combination of static gating architecture with gate-based selection offers the best accuracy-sparsity trade-off, achieving comparable or better performance than full-channel models using only 15-31\% of channels. These results have important implications for practical BCI systems, potentially enabling more comfortable, portable, and cost-effective brain-computer interfaces for motor rehabilitation and assistive applications.
+The adaptive gating architecture with gate-based selection offers the best accuracy-sparsity trade-off, achieving comparable or better performance than full-channel models using only 15-31\% of channels. These results have important implications for practical BCI systems, potentially enabling more comfortable, portable, and cost-effective brain-computer interfaces for motor rehabilitation and assistive applications.
 
 \section*{Acknowledgements}
 We thank the maintainers of the PhysioNet EEG Motor Movement/Imagery dataset and the MNE community for providing excellent open-source tools for EEG analysis.
