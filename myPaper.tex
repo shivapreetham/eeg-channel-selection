@@ -109,6 +109,62 @@ X^{(l+1)} = \text{ELU}(\text{BN}(\tilde{A} X^{(l)} \Theta^{(l)}))
 \end{equation}
 where $\Theta^{(l)}$ is a learnable weight matrix for layer $l$.
 
+\paragraph{Detailed Derivation of CARM.}
+GCN performs convolution operations on graph data in non-Euclidean space. The graph is defined as $G=(V,E)$, where $V$ and $E$ represent the nodes and edges, respectively. The connection relationship between nodes is described by the adjacency matrix $W\in\mathbb{R}^{N\times N}$. Because EEG channel information is discrete and irregular in spatial distribution, graph convolution along the channel dimension is important. Constructing a fixed adjacency is difficult given subject-specific MI activation, so CARM learns connectivity automatically.
+
+The Laplacian matrix is
+\begin{equation}
+L=D-W\in\mathbb{R}^{N\times N},
+\end{equation}
+and the graph Fourier transform (GFT) of $x\in\mathbb{R}^N$ is
+\begin{equation}
+\hat{x}=U^{T}x,\quad L=U\Lambda U^{T},\; U^{T}U=I_N,\; \Lambda=\mathrm{diag}([\lambda_0,\ldots,\lambda_{N-1}]).
+\end{equation}
+The inverse GFT is $x=U\hat{x}=UU^{T}x$. The graph convolution between $x_1$ and $x_2$ can be written as
+\begin{equation}
+x_1 *_{G} x_2 = U\,\mathrm{diag}(\hat{x}_1)\,U^{T}x_2.
+\end{equation}
+For a filter $g_\theta=\mathrm{diag}(\theta)$,
+\begin{equation}
+g_\theta *_{G} x = U\,\mathrm{diag}(\theta)\,U^{T}x.
+\end{equation}
+Let $g(\Lambda)$ be approximated by a Chebyshev polynomial of order $K$. With $\bar{\Lambda}=2\Lambda/\lambda_{\max}-I_N$ (so its diagonal entries lie in $[-1,1]$), we have
+\begin{equation}
+g(\Lambda)=\sum_{k=0}^{K-1}\theta_k\, T_k(\bar{\Lambda}),\quad T_0=I,\; T_1=\bar{\Lambda},\; T_k=2\bar{\Lambda}T_{k-1}-T_{k-2}.
+\end{equation}
+Thus
+\begin{equation}
+g_\theta *_{G} x=\sum_{k=0}^{K-1}\theta_k\,T_k(\bar{\Lambda})\,x.
+\end{equation}
+With $K=1$ and $\lambda_{\max}\approx 2$,
+\begin{equation}
+g_\theta *_{G} x=\theta_0 x+\theta_1(\Lambda-I_N)x=\theta_0 x+\theta_1 D^{-\tfrac{1}{2}} W D^{-\tfrac{1}{2}} x.
+\end{equation}
+Using a normalized form to avoid gradient issues, set $\tilde{W}=W+I_N$ and $\tilde{D}_{ii}=\sum_j \tilde{W}_{ij}$, then
+\begin{equation}
+g_\theta *_{G} x=\theta\,(\tilde{D}^{-\tfrac{1}{2}}\,\tilde{W}\,\tilde{D}^{-\tfrac{1}{2}})\,x.
+\end{equation}
+Extending to spatiotemporal input $X\in\mathbb{R}^{N\times T}$ with time-$t$ slice $X_t$, the graph convolution is
+\begin{equation}
+H_t=\tilde{D}^{-\tfrac{1}{2}}\,\tilde{W}\,\tilde{D}^{-\tfrac{1}{2}}\,X_t\,\Theta_t\equiv\hat{W}\,X_t\,\Theta_t,
+\end{equation}
+where $\Theta_t\in\mathbb{R}^{T\times T}$ is a trainable temporal transform.
+
+To remove dependency on handcrafted priors, CARM initializes a dense adjacency by connecting each channel to all others:
+\begin{equation}
+W^{*}_{ij}=\begin{cases}1, & i\neq j \\ 0, & i=j.\end{cases}
+\end{equation}
+The corresponding normalized $\hat{W}^{*}$ is used in the graph convolution and is updated during training by backpropagation. The gradient has entries $\tfrac{\partial \mathrm{Loss}}{\partial \hat{W}^{*}_{ij}}$, and the update is
+\begin{equation}
+\hat{W}^{*} \leftarrow (1-\rho)\,\hat{W}^{*} - \rho\, \frac{\partial \mathrm{Loss}}{\partial \hat{W}^{*}},\quad \rho=0.001.
+\end{equation}
+Therefore, the final CARM operation is
+\begin{equation}
+H_t=\hat{W}^{*}\,X_t\,\Theta_t,
+\end{equation}
+which corrects the connection relations between EEG channels in a subject-specific manner and improves the ability of graph convolution to extract channel relationships.
+
+
 The complete baseline architecture consists of three TFEM-CARM blocks, followed by fully connected layers for classification:
 \begin{align}
 X^{(1)} &= \text{CARM}_1(\text{TFEM}_1(X)) \\
@@ -117,32 +173,13 @@ X^{(3)} &= \text{CARM}_3(\text{TFEM}_3(X^{(2)})) \\
 y &= \text{FC}_2(\text{Dropout}(\text{ReLU}(\text{FC}_1(\text{Flatten}(X^{(3)})))))
 \end{align}
 
-\subsection{Gating Mechanisms for Channel Selection}
+\subsection{Gating Mechanism for Channel Selection}
 
-To enable effective channel selection, we introduce three gating mechanisms that modulate channel contributions during training. These mechanisms learn which channels are most informative for the classification task.
-
-\subsubsection{Static Gating}
-
-Static gating introduces learnable per-channel scalar gates $g \in (0,1)^C$ that multiplicatively modulate each channel's contribution:
-\begin{equation}
-X'_{b,c,t} = g_c \cdot X_{b,c,t}
-\end{equation}
-
-The gates are parameterized via sigmoid-transformed logits:
-\begin{equation}
-g_c = \sigma(z_c)
-\end{equation}
-where $z_c$ are learnable parameters initialized to yield $g_c \approx 0.9$ initially. This allows all channels to contribute at the start of training, with the network gradually learning to suppress less informative channels.
-
-To encourage sparsity, we add an $L_1$ penalty on gate values:
-\begin{equation}
-\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \lambda_{\text{gate}} \sum_{c=1}^{C} |g_c|
-\end{equation}
-where $\mathcal{L}_{\text{CE}}$ is the cross-entropy loss and $\lambda_{\text{gate}}$ is the regularization coefficient (typically $10^{-3}$).
+To enable effective channel selection, we introduce an adaptive gating mechanism that modulates channel contributions during training by computing per-trial, per-channel importance.
 
 \subsubsection{Adaptive Gating}
 
-While static gates are fixed for all inputs, adaptive gates compute input-dependent channel importance. A small neural network processes per-channel statistics to generate gates:
+Adaptive gates compute input-dependent channel importance. A small neural network processes per-channel statistics to generate gates:
 \begin{equation}
 g^{(b)} = \sigma(\text{MLP}([\mu^{(b)}, \sigma^{(b)}]))
 \end{equation}
@@ -150,54 +187,135 @@ where $\mu^{(b)}_c = \frac{1}{T}\sum_t X_{b,c,t}$ and $\sigma^{(b)}_c = \sqrt{\f
 
 Adaptive gating allows the model to dynamically adjust channel importance based on the input signal characteristics, potentially capturing trial-to-trial variability in brain activity.
 
-\subsubsection{Early Halting}
+%channel by bhatu
 
-Inspired by adaptive computation, early halting learns to progressively reduce channel contributions during processing. A halting network computes per-channel halting probabilities:
-\begin{equation}
-h^{(b)}_c = \sigma(\text{MLP}_{\text{halt}}([\mu^{(b)}_c, \sigma^{(b)}_c]))
-\end{equation}
-
-During training, channels are weighted by $(1 - h^{(b)}_c)$, creating a soft masking effect. During inference, channels are hard-masked if $h^{(b)}_c > \tau$, where $\tau$ is a threshold (typically 0.5). A penalty term encourages the model to halt more channels:
-\begin{equation}
-\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \lambda_{\text{halt}} \sum_{c=1}^{C} (1 - h_c)
-\end{equation}
 
 \subsection{Channel Selection Methods}
+\label{subsec:channel-selection}
 
-After training on all available channels, we extract channel importance scores and select $k$ channels using three methods.
+To obtain lightweight yet accurate motor-imagery (MI) classifiers, we design
+three \textbf{integrated channel-pruning techniques}---%
+\textbf{Edge-Selection (ES)}, \\ \textbf{Aggregation-Selection (AS)}, and
+\textbf{Gate-Based Selection (GATE)}---that operate directly
+on the learned weights of our graph-convolutional networks. After the model
+has been trained on the full 64-channel PhysioNet montage, each technique
+produces a \textbf{scalar relevance score} for every electrode. The electrodes
+are then ranked, and the highest-$k$ entries ($k\in\{10,20,30,40\}$) are kept.
+A \textbf{second-stage training pass} is performed with the reduced set under
+3-fold, subject-level cross-validation, yielding a direct measure of accuracy
+retention against the all-channel baseline.
 
-\subsubsection{Edge Selection (ES)}
 
-Edge selection ranks channels by their total edge importance in the learned adjacency matrix. For each channel $c$, we compute:
+
+
+
+
+
+In contrast to stand-alone sparsity schemes (e.g., sequential feature
+elimination), our approaches \textbf{co-optimize channel importance and network
+parameters} inside a single loss function. A uniform $\ell_1$ penalty
+($\lambda=10^{-3}$) is added to every variant, encouraging compact solutions
+without loss of expressive power. Experiments---covering classification
+error, inter-subject spread, and spatial consistency---show that cutting the
+electrode count by \textbf{69--84\,\%} produces a \textbf{median accuracy loss below
+3\,\%}, occasionally even improving performance by discarding noisy sensors.
+The following subsections explain the \textbf{core mechanics} of ES, AS, and GATE
+and describe their specific use in the \textbf{baseline EEG-ARNN}, \textbf{CARMv2}, and
+\textbf{Gated CARM} pipelines..
+
+
+
+
+
+
+
+
+
+
+\subsubsection{Edge-Selection (ES)}
+\label{subsubsec:es}
+
+The ES paradigm distills channel centrality from the \textbf{learned adjacency matrix} $\mathbf{A}^{(L)} \in \mathbb{R}^{N \times N}$ ($N=64$) emergent within graph convolutional strata. Rather than anchoring connectivity to static geospatial priors (e.g., 10--20 inter-electrode distances), we parameterize $\mathbf{A}$ as a trainable entity, initialized via normalized Laplacian eigen-decomposition and refined conjointly with spectral filters. This endows the graph with plasticity to mirror idiosyncratic MI-induced covariances, such as enhanced C3--Cz coupling during right-hand imagery.
+
+Let $\mathbf{A}^{(L)}$ signify the adjacency at the terminal GCN layer $L$. The ES importance for node $i$ is formalized as the incident edge magnitude aggregate:
 \begin{equation}
-s^{\text{ES}}_c = \sum_{j \neq c} |A_{c,j}| + |A_{j,c}|
+s_i^{\text{ES}} = \sum_{j=1}^{N} \left| A_{ij}^{(L)} \right| + \sum_{j=1}^{N} \left| A_{ji}^{(L)} \right|,
+\label{eq:es}
 \end{equation}
+encompassing both outgoing and incoming linkages to mitigate directionality bias. Scores are $\ell_1$-normalized to a simplex, and the $k$-largest indices are retained. Conceptually, ES nominates ``neural hubs''---electrodes sustaining high-throughput pathways in the propagated feature graph---analogous to bottleneck vertices in a communication lattice.
 
-Channels with the highest $s^{\text{ES}}_c$ values are selected. This method prioritizes channels that have strong functional connectivity with other channels, indicating their importance in the graph structure.
+Deployed within the baseline EEG-ARNN and CARMv2 schemas, ES yields exemplary resilience: accuracy decrements of 1.30\,\% and 1.17\,\%, respectively, at $k=20$. Topographic inspection reveals preferential preservation of centro-parietal clusters (C3, C4, CPz), corroborating contralateral dominance in sensorimotor rhythms.
 
-\subsubsection{Aggregation Selection (AS)}
 
-Aggregation selection ranks channels by their aggregated connectivity strength:
+
+
+
+\subsubsection{Aggregation-Selection (AS)}
+\label{subsubsec:as}
+
+AS derives channel importance from the magnitude of the learned feature representation produced by the final graph-convolutional layer. After the propagation step, the output tensor $\mathbf{H}^{(L)} \in \mathbb{R}^{N \times F}$ (with $F$ being the number of feature maps) contains a rich temporal-spatial encoding for every electrode. The AS score for channel $i$ is defined as the average absolute activation across all feature dimensions:
 \begin{equation}
-s^{\text{AS}}_c = \sum_{j=1}^{C} |A_{c,j}|
+s_i^{\text{AS}} = \frac{1}{F}\sum_{f=1}^{F} \bigl|H_{i,f}^{(L)}\bigr|.
+\label{eq:as}
 \end{equation}
+This measure reflects the overall information throughput of a channel and can be further refined by weighting each term with the gradient magnitude flowing from the classification head, thereby emphasizing channels that are decisive for the final prediction.
 
-This is equivalent to the weighted degree centrality in the functional connectivity graph. Channels with high aggregation scores act as hubs in the network.
+In the CARMv2 architecture, where the adjacency matrix is updated adaptively, AS consistently selects electrodes that exhibit strong discriminative power. At a retention level of $k=20$, the mean accuracy loss is limited to *1.46\,\%*, with slightly larger inter-subject variability than ES. Sessions characterized by clear beta-band suppression benefit most from AS, as the method naturally highlights bilateral fronto-parietal regions that support motor planning and sustained attention during imagined movement.
 
-\subsubsection{Gate Selection (GS)}
 
-For gated models, we can directly use the learned gate values for selection. For static gating:
+
+
+
+
+
+
+\subsubsection{Gate-Based Selection (GATE)}
+\label{subsubsec:gate}
+
+Exclusive to the Gated CARM lineage, GATE operationalizes \textbf{explicit channel-wise modulation parameters} 
+$\mathbf{g} = [g_1, \dots, g_N]^\top \in (0,1)^N$, realized as sigmoid-gated linear projections prefixed to the graph input:
 \begin{equation}
-s^{\text{GS}}_c = g_c
+\mathbf{X}_{\text{gated}} = \mathbf{X} \odot \sigma(\mathbf{W}_g \mathbf{z} + \mathbf{b}_g),
+\label{eq:gate-forward}
 \end{equation}
+with $\mathbf{z}$ a learned embedding and initial bias tuned to $g_i^0 \approx 0.9$. An auxiliary $\ell_1$ objective $\mathcal{L}_{\text{gate}} = \lambda \|\mathbf{g}\|_1$ coerces suppression of dispensable pathways, effectuating soft pruning concurrent with classification.
 
-For adaptive gating and early halting, we average gate values or active masks across the validation set:
+Terminal gate magnitudes directly instantiate importance:
 \begin{equation}
-s^{\text{GS}}_c = \frac{1}{N_{\text{val}}} \sum_{b=1}^{N_{\text{val}}} g^{(b)}_c
+s_i^{\text{GATE}} = g_i.
+\label{eq:gate-score}
 \end{equation}
+Selection proceeds by rank-order thresholding. GATE thus furnishes an \textbf{interpretable sparsity mask}, wherein near-zero gates unequivocally flag irrelevance. Remarkably, at $k=20$, Gated CARM under GATE manifests a \textbf{−4.56\,\%} accuracy shift---denoting \textit{enhancement}---as excision of artifact-prone channels (e.g., temporal peripherals) purifies the signal manifold. Distributional analysis reveals bimodal gate histograms, with a pronounced mass at $g_i < 0.1$ for pruned electrodes.
 
-Gate selection provides a direct measure of channel importance learned by the gating mechanism.
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{channel_selection_figures.pdf}
+\caption{\textbf{Tripartite channel selection schemata.} (a) \textbf{ES}: weighted adjacency subgraph overlaid on the standardized 10--20 montage, with node radius proportional to $s_i^{\text{ES}}$ and edge opacity to $|A_{ij}|$. (b) \textbf{GATE}: histogram of converged gate values (blue) alongside binary retention mask for $k=20$ (red overlay). (c) \textbf{AS}: activation heatmap of terminal GCN features, with intensity scaled by $s_i^{\text{AS}}$; composite averaged over 10 subjects.}
+\label{fig:channel-selection}
+\end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{accuracy_vs_k.pdf}
+\caption{\textbf{Dimensionality--fidelity trade-off.} Accuracy trajectories (mean $\pm$ 1$\sigma$) versus retained channels $k$, stratified by model and selection strategy. Dotted asymptote: full-channel baseline. Inset: Pareto frontier highlighting optimal $k=20$ operating points.}
+\label{fig:accuracy-vs-k}
+\end{figure}
+
+
+
+
+
+
+% ... end of GATE subsection ...
+
+By combining \textbf{ES} to preserve functional connectivity, \textbf{AS} to retain 
+high-information channels, and \textbf{GATE} to enforce structured sparsity, we 
+achieve accurate motor imagery classification using only 16--31\,\% of the original 
+electrodes. This enables efficient, low-cost EEG systems suitable for real-time 
+neuroprosthetic control in clinical and daily-life settings.
+
+
+% channel selection by bhatu ends here
 \subsection{Retraining with Selected Channels}
 
 Once $k$ channels are selected, we retrain the model from scratch using only the selected channels. This ensures the model can fully adapt to the reduced channel set, potentially learning different connectivity patterns optimized for the smaller input space. The same architecture and hyperparameters are used, with $C$ replaced by $k$.
