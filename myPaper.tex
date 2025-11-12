@@ -58,15 +58,7 @@ The use of dense electrodes for EEG recordings increases the burden on subjects,
 
 To address the above issues, this article proposes enhanced variants of the EEG channel active inference neural network (EEG-ARNN) with gating mechanisms, which not only achieve state-of-the-art accuracy but also enable effective channel selection for specific subjects. The main contributions are as follows:
 
-\begin{enumerate}
-\item We propose an end-to-end EEG-ARNN framework that combines temporal feature extraction with graph convolutional reasoning to automatically learn channel connectivity without manual adjacency matrix design, and we show that adaptive gating yields the best results when paired with the baseline architecture.
-
-\item We introduce an adaptive gating mechanism that learns per-trial channel importance dynamically during training, which in turn supports gate-selection (GS) for channel reduction.
-
-\item Three channel selection methods are proposed: edge-selection (ES), aggregation-selection (AS), and gate-selection (GS). When using selected channels to train EEG-ARNN, classification performance close to that of full channel data can be obtained by using only 1/6 to 1/3 of the original channels.
-
-\item Comprehensive experiments on the PhysioNet EEG Motor Movement/Imagery dataset with 10 subjects demonstrate the effectiveness of our approach. The selected channels correspond to neurophysiologically relevant brain regions, offering insights into brain activation during MI tasks.
-\end{enumerate}
+We propose an end-to-end EEG-ARNN framework that brings together temporal feature extraction and graph convolutional reasoning to learn channel connectivity automatically, demonstrating that adaptive gating delivers the strongest results when combined with the baseline architecture. The adaptive gating module learns per-trial channel importance, supporting gate-selection (GS) for channel reduction, while ES and AS provide complementary adjacency-based views. Together, these components allow us to retrain on 1/6 to 1/3 of the original channels with minimal accuracy loss. Our experiments on 10 PhysioNet subjects confirm the effectiveness of this pipeline, showing that selected channels align with known neurophysiological regions while the classification performance remains competitive.
 
 The rest of this article is organized as follows: Section II introduces the EEG-ARNN model and gating variants, along with ES, AS, and GS channel selection methods. Section III presents the experimental setup and dataset preprocessing. Section IV reports comprehensive experimental results. Finally, Section V concludes this article with discussion and future work.
 
@@ -328,12 +320,7 @@ We use the PhysioNet EEG Motor Movement/Imagery dataset \cite{physionet}, a publ
 
 \subsubsection{Data Quality Screening}
 
-To ensure robust results, we performed comprehensive data quality screening. We excluded subjects with:
-\begin{itemize}
-\item Fewer than 8 task runs available
-\item High proportion of clipped or artifactual epochs
-\item Known labeling or recording issues
-\end{itemize}
+To ensure robust results, we performed comprehensive data quality screening, excluding subjects with fewer than eight task runs, a high proportion of clipped or artifactual epochs, or known labeling/recording problems.
 
 After quality screening, 82 subjects met our criteria. We selected 10 subjects (S001, S002, S005, S006, S007, S008, S011, S014, S015, S016) for comprehensive evaluation, representing diverse performance levels and signal characteristics.
 
@@ -343,53 +330,17 @@ We focus on binary motor imagery classification: left fist imagery (T1) versus r
 
 \subsection{Preprocessing Pipeline}
 
-Raw EDF recordings were preprocessed using MNE-Python \cite{mne} with the following steps:
-
-\begin{enumerate}
-\item Channel cleaning: Removed trailing periods from channel names and selected EEG channels
-\item Montage: Applied standard 10-20 electrode positioning
-\item Notch filtering: Removed 50 Hz powerline noise
-\item Bandpass filtering: Applied 0.5-40 Hz FIR filter to remove slow drifts and high-frequency noise
-\item Common average referencing (CAR): Re-referenced to the average of all channels to reduce common-mode noise
-\item Resampling: Downsampled to 128 Hz for computational efficiency
-\item Epoching: Extracted epochs from -1.0s to 5.0s relative to task cue
-\item Baseline correction: Normalized using -0.5s to 0s pre-stimulus baseline
-\end{enumerate}
+Raw EDF recordings were preprocessed with MNE-Python \cite{mne}: we cleaned channel names and restricted to EEG electrodes, applied the standard 10-20 montage, removed 50 Hz powerline noise via notch filtering, and filtered between 0.5--40 Hz with an FIR filter. We also applied common-average reference (CAR), downsampled to 128 Hz, extracted -1.0s to 5.0s epochs around task cues, and performed baseline correction using the -0.5s to 0s pre-stimulus window.
 
 After preprocessing, each trial is represented as a 64-channel by 769-timepoint array (approximately 6 seconds at 128 Hz).
 
 \subsection{Training Configuration}
 
-All models were trained using 3-fold stratified cross-validation to ensure balanced class distribution in each fold. The configuration parameters are:
-
-\begin{itemize}
-\item Hidden dimension: 40
-\item Training epochs: 20 per fold
-\item Batch size: 64
-\item Learning rate: $10^{-3}$
-\item Optimizer: Adam with weight decay $10^{-4}$
-\item Learning rate scheduler: ReduceLROnPlateau (factor=0.5, patience=3)
-\item Early stopping patience: 8 epochs
-\item Dropout: 0.5 in fully connected layers
-\end{itemize}
-
-For gated models:
-\begin{itemize}
-\item Static gating: $L_1$ regularization $\lambda_{\text{gate}} = 10^{-3}$, gate initialization at 0.9
-\item Adaptive gating: Same $L_1$ regularization, bias initialization at 2.0
-\item Early halting: Halting threshold $\tau = 0.5$, penalty $\lambda_{\text{halt}} = 10^{-2}$
-\end{itemize}
+All models were trained using 3-fold stratified cross-validation to keep class balance across folds. We used a hidden dimension of 40, trained for up to 20 epochs per fold with batch size 64, and optimized with Adam (learning rate $10^{-3}$, weight decay $10^{-4}$) coupled with ReduceLROnPlateau (factor 0.5, patience 3), early stopping after 8 epochs, and dropout of 0.5 in the fully connected layers. The gating module shares the same $L_1$ regularization ($\lambda_{\text{gate}} = 10^{-3}$) and is initialized with a bias that places the gates near 0.9 so that adaptation can drive sparsity gradually.
 
 \subsection{Channel Selection Evaluation}
 
-For each subject and model variant, we:
-\begin{enumerate}
-\item Train the model on all 64 channels using 3-fold cross-validation
-\item Extract the learned adjacency matrix and gate values (if applicable)
-\item Select $k \in \{10, 15, 20, 25, 30\}$ channels using ES, AS, and GS methods
-\item Retrain the model from scratch using only the selected $k$ channels
-\item Evaluate accuracy drop compared to full-channel performance
-\end{enumerate}
+For each subject and model variant, we trained on all 64 channels with 3-fold cross-validation, extracted the learned adjacency and gate values, and used ES, AS, or GS to select $k \in \{10,15,20,25,30\}$ channels. The full model was then retrained on the reduced set and evaluated by comparing accuracy drop to the full-channel baseline.
 
 All experiments were conducted on NVIDIA GPU with PyTorch. Each experiment configuration was run with fixed random seed (42) for reproducibility.
 
@@ -423,11 +374,7 @@ Mean & 0.8413 $\pm$ 0.057 & \textbf{0.8460 $\pm$ 0.054} & \textbf{0.8460 $\pm$ 0
 \end{tabular}
 \end{table}
 
-Key observations:
-\begin{itemize}
-\item Both baseline and adaptive gating achieve strong performance, with adaptive gating obtaining the highest mean accuracy (84.60\%), suggesting input-dependent channel weighting is beneficial.
-\item Subject S007 maintains excellent performance ($>$92\%), while S002 remains the most challenging subject ($\sim$75-78\%).
-\end{itemize}
+Key observations include the robustness of both baseline and adaptive gating, with the latter attaining the highest mean accuracy (84.60\%) and indicating that input-dependent channel weighting provides a measurable benefit. Subject S007 sustains excellent performance (above 92\%), whereas S002 continues to pose the greatest challenge (around 75-78\%), underscoring the inter-subject variability even when using the same architecture.
 
 \subsection{Channel Selection Performance}
 
@@ -492,15 +439,7 @@ Figure \ref{fig:channel_freq} shows the frequency with which each channel is sel
   \label{fig:channel_freq}
 \end{figure}
 
-Analysis of selected channels reveals:
-
-\begin{itemize}
-\item Sensorimotor channels are consistently selected: C3, C4, Cz (central), CP1, CP2, CPz (centro-parietal)
-\item Frontal channels (Fz, FC1, FC2) appear frequently, suggesting involvement of motor planning areas
-\item Parietal channels (P3, P4, Pz) are selected, consistent with sensory processing during MI
-\item Temporal channels are less frequently selected, indicating lower relevance for fist MI tasks
-\item ES and AS show high agreement (>80\% overlap) in selected channels
-\end{itemize}
+Analysis of selected channels highlights that sensorimotor electrodes (C3, C4, Cz, CP1, CP2, CPz) remain dominant, while frontal leads (Fz, FC1, FC2) and parietal sites (P3, P4, Pz) appear regularly, reflecting the engagement of motor planning and sensory processing areas. Temporal contacts are chosen less often, indicating their lower relevance for fist MI tasks, and ES/AS exhibit over 80\% overlap, demonstrating agreement on the most informative electrodes.
 
 The neurophysiological validity of selected channels is confirmed by their correspondence to known motor imagery brain regions. The bilateral central and centro-parietal electrodes overlying the sensorimotor cortex are expected to show event-related desynchronization (ERD) during MI tasks.
 
@@ -529,14 +468,7 @@ Figure \ref{fig:subject_drops} presents accuracy drops for each subject across d
   \label{fig:results_summary}
 \end{figure}
 
-Subject-specific patterns:
-\begin{itemize}
-\item S007 (best performer) maintains high accuracy even with k=10 (drop <2\%)
-\item S002 (worst performer) shows larger drops (4-6\%), suggesting more distributed signal
-\item Most subjects show stable performance for k $\geq$ 15
-\item Some subjects (S008, S015) actually improve slightly with channel reduction for certain k values, indicating presence of noisy channels in full set
-\item Inter-subject variability is substantial, suggesting value of subject-specific channel selection
-\end{itemize}
+Subject-specific patterns emerge: S007 maintains very high accuracy even with k=10 (drop below 2\%), whereas S002 suffers larger decrements (4-6\%), implying a more distributed signal. Most subjects stabilize for k $\geq$ 15, and a few (S008, S015) even benefit from channel reduction, suggesting the full montage contains noisy entries. These observations reinforce the importance of subject-tailored selection.
 
 \subsection{Comparison of Selection Methods}
 
@@ -549,25 +481,11 @@ Figure \ref{fig:method_comparison} compares the three selection methods (ES, AS,
   \label{fig:method_comparison}
 \end{figure}
 
-Method comparison insights:
-\begin{itemize}
-  \item ES and AS achieve similar drops on the baseline architecture, while gate selection (GS) from adaptive gating yields the smallest loss.
-  \item GS leverages learned per-trial weights, offering a more direct ranking than adjacency-based heuristics when gates are available.
-  \item ES/AS remain useful when gate values are unavailable, providing complementary perspectives on channel importance.
-\end{itemize}
+Method comparison insights reveal that ES and AS show similar accuracy drops on the baseline architecture, while GS derived from adaptive gating delivers the smallest loss. The gate values serve as a direct ranking of channels, whereas ES/AS continue to be valuable when explicit gate scores are unavailable, offering complementary perspectives derived from the learned adjacency.
 
 \subsection{Computational Efficiency}
 
-Channel reduction provides significant computational benefits:
-\begin{itemize}
-\item With k=10 channels: 84\% reduction in input dimension
-\item Training time reduced by approximately 60-70\%
-\item Inference time reduced by approximately 65-75\%
-\item Memory requirements reduced proportionally
-\item Model parameter count reduced (smaller adjacency matrices)
-\end{itemize}
-
-These improvements are critical for real-time BCI applications and embedded systems.
+Channel reduction brings clear computational benefits: reducing to k=10 channels cuts the input dimension by 84\%, shortens training time by roughly 60-70\%, decreases inference latency by approximately 65-75\%, and proportionally lowers memory and parameter requirements (due to smaller adjacency matrices). These savings are critical for real-time BCI applications and embedded systems.
 
 \section{Discussion}
 
@@ -617,32 +535,6 @@ The demonstrated effectiveness of channel reduction has important practical impl
 \textbf{Signal quality:} Focusing on most informative channels may improve signal-to-noise ratio by reducing redundant or noisy inputs.
 
 \textbf{Clinical translation:} Simplified setups facilitate clinical adoption and home-based rehabilitation applications.
-
-\subsection{Limitations and Future Work}
-
-Several limitations suggest directions for future research:
-
-\textbf{1. Dataset scope:} While PhysioNet provides clean, well-controlled data, additional validation on other MI datasets (BCICIV, OpenBMI, etc.) and different MI tasks (foot, tongue) would strengthen generalization claims.
-
-\textbf{2. Subject-agnostic selection:} Our current approach performs subject-specific selection. Developing universal channel subsets that work across subjects would simplify practical deployment but may sacrifice some accuracy.
-
-\textbf{3. Online adaptation:} Current methods perform offline channel selection. Online adaptation to changing brain states during extended BCI use could further improve robustness.
-
-\textbf{4. Multi-class tasks:} We focused on binary left-vs-right classification. Extension to multi-class MI tasks may require different channel sets or selection strategies.
-
-\textbf{5. Coupling gates to selection:} Currently, channel selection is post-hoc (train, then select). Direct optimization of discrete channel selections during training (e.g., using differentiable hard selection) could improve accuracy-sparsity trade-offs.
-
-\textbf{6. Interpretability:} While selected channels are neurophysiologically plausible, deeper analysis of learned adjacency matrices and their relationship to known functional connectivity would enhance interpretability.
-
-Future work will address these limitations through:
-\begin{itemize}
-\item Cross-dataset validation on multiple MI paradigms
-\item Development of transfer learning approaches for subject-agnostic selection
-\item Online channel selection algorithms with adaptive retraining
-\item Extension to multi-class and asynchronous BCI tasks
-\item Integration of differentiable selection mechanisms
-\item Comprehensive neurophysiological analysis of learned connectivity patterns
-\end{itemize}
 
 \subsection{Conclusion}
 
