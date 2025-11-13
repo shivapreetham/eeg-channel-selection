@@ -277,7 +277,7 @@ Terminal gate magnitudes directly instantiate importance:
 s_i^{\text{GATE}} = g_i.
 \label{eq:gate-score}
 \end{equation}
-Selection proceeds by rank-order thresholding. GATE thus furnishes an \textbf{interpretable sparsity mask}, wherein near-zero gates unequivocally flag irrelevance. Remarkably, at $k=20$, Gated CARM under GATE manifests a \textbf{−4.56\,\%} accuracy shift---denoting \textit{enhancement}---as excision of artifact-prone channels (e.g., temporal peripherals) purifies the signal manifold. Distributional analysis reveals bimodal gate histograms, with a pronounced mass at $g_i < 0.1$ for pruned electrodes.
+Selection proceeds by rank-order thresholding. GATE thus furnishes an \textbf{interpretable sparsity mask}, wherein near-zero gates unequivocally flag irrelevance. Remarkably, at $k=20$, Gated CARM under GATE manifests a \textbf{-4.56\,\%} accuracy shift---denoting \textit{enhancement}---as excision of artifact-prone channels (e.g., temporal peripherals) purifies the signal manifold. Distributional analysis reveals bimodal gate histograms, with a pronounced mass at $g_i < 0.1$ for pruned electrodes.
 
 \begin{figure}[t]
 \centering
@@ -310,7 +310,7 @@ neuroprosthetic control in clinical and daily-life settings.
 % channel selection by bhatu ends here
 \subsection{Retraining with Selected Channels}
 
-Once $k$ channels are selected, we retrain the model from scratch using only the selected channels. This ensures the model can fully adapt to the reduced channel set, potentially learning different connectivity patterns optimized for the smaller input space. The same architecture and hyperparameters are used, with $C$ replaced by $k$.
+Following the determination of the top \textbf{k} channels via \textbf{ES}, \textbf{AS}, or \textbf{GATE} techniques, we reset the model parameters and perform training from the beginning, using inputs drawn solely from these designated electrodes. This end-to-end retraining step enables the architecture to generate novel feature embeddings and adjust inter-node dependencies within the graph framework to align with the downsized electrode layout, typically producing enhanced signal processing and linkage configurations that are better matched to the smaller-scale data. During this phase, the core design of the network, the chosen loss criterion, the update mechanism, and all tuning parameters mirror those employed in the primary full-channel experiments—the sole alteration being the shift in input size from the complete electrode array ($\textbf{C = 64}$) to the specified $\textbf{k}$. Accordingly, the trained system handles just the condensed dataset segment, promoting resilient recalibration that may regain or sometimes improve upon the reference accuracy by filtering out irrelevant disturbances and channeling resources toward the primary neural indicators linked to motor imagery activity.
 
 \section{Experimental Setup}
 
