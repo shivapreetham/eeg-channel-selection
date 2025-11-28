@@ -1,0 +1,424 @@
+
+Processing S001...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.6667 (drop: -0.0516)
+    FBCSP, k=15: 0.6667 (drop: -0.0516)
+    FBCSP, k=20: 0.6746 (drop: -0.0595)
+    FBCSP, k=25: 0.6389 (drop: -0.0238)
+    FBCSP, k=30: 0.6746 (drop: -0.0595)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.9405 (drop: -0.0119)
+    CNN_SAE, k=15: 0.9286 (drop: 0.0000)
+    CNN_SAE, k=20: 0.9206 (drop: 0.0079)
+    CNN_SAE, k=25: 0.9365 (drop: -0.0079)
+    CNN_SAE, k=30: 0.9008 (drop: 0.0278)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9484 (drop: -0.0119)
+    EEGNET, k=15: 0.9603 (drop: -0.0238)
+    EEGNET, k=20: 0.9365 (drop: 0.0000)
+    EEGNET, k=25: 0.9444 (drop: -0.0079)
+    EEGNET, k=30: 0.9524 (drop: -0.0159)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.9167 (drop: -0.0516)
+    ACS_SE_CNN, k=15: 0.9008 (drop: -0.0357)
+    ACS_SE_CNN, k=20: 0.9008 (drop: -0.0357)
+    ACS_SE_CNN, k=25: 0.9087 (drop: -0.0437)
+    ACS_SE_CNN, k=30: 0.8929 (drop: -0.0278)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.7857 (drop: 0.0238)
+    G_CARM-ES, k=15: 0.7024 (drop: 0.1071)
+    G_CARM-ES, k=20: 0.7421 (drop: 0.0675)
+    G_CARM-ES, k=25: 0.7183 (drop: 0.0913)
+    G_CARM-ES, k=30: 0.7262 (drop: 0.0833)
+    G_CARM-AS, k=10: 0.8810 (drop: -0.0714)
+    G_CARM-AS, k=15: 0.8571 (drop: -0.0476)
+    G_CARM-AS, k=20: 0.8929 (drop: -0.0833)
+    G_CARM-AS, k=25: 0.8651 (drop: -0.0556)
+    G_CARM-AS, k=30: 0.8492 (drop: -0.0397)
+
+Processing S002...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.6310 (drop: 0.0476)
+    FBCSP, k=15: 0.6706 (drop: 0.0079)
+    FBCSP, k=20: 0.6825 (drop: -0.0040)
+    FBCSP, k=25: 0.6429 (drop: 0.0357)
+    FBCSP, k=30: 0.6786 (drop: 0.0000)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.7341 (drop: -0.0238)
+    CNN_SAE, k=15: 0.7341 (drop: -0.0238)
+    CNN_SAE, k=20: 0.7579 (drop: -0.0476)
+    CNN_SAE, k=25: 0.7381 (drop: -0.0278)
+    CNN_SAE, k=30: 0.7222 (drop: -0.0119)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.8333 (drop: -0.0437)
+    EEGNET, k=15: 0.8373 (drop: -0.0476)
+    EEGNET, k=20: 0.8254 (drop: -0.0357)
+    EEGNET, k=25: 0.7778 (drop: 0.0119)
+    EEGNET, k=30: 0.8175 (drop: -0.0278)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.6944 (drop: 0.0040)
+    ACS_SE_CNN, k=15: 0.6905 (drop: 0.0079)
+    ACS_SE_CNN, k=20: 0.6865 (drop: 0.0119)
+    ACS_SE_CNN, k=25: 0.7103 (drop: -0.0119)
+    ACS_SE_CNN, k=30: 0.7143 (drop: -0.0159)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.6905 (drop: -0.0159)
+    G_CARM-ES, k=15: 0.6825 (drop: -0.0079)
+    G_CARM-ES, k=20: 0.6825 (drop: -0.0079)
+    G_CARM-ES, k=25: 0.6706 (drop: 0.0040)
+    G_CARM-ES, k=30: 0.6706 (drop: 0.0040)
+    G_CARM-AS, k=10: 0.6825 (drop: -0.0079)
+    G_CARM-AS, k=15: 0.6746 (drop: 0.0000)
+    G_CARM-AS, k=20: 0.6786 (drop: -0.0040)
+    G_CARM-AS, k=25: 0.6905 (drop: -0.0159)
+    G_CARM-AS, k=30: 0.6944 (drop: -0.0198)
+
+Processing S005...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.6667 (drop: -0.0476)
+    FBCSP, k=15: 0.6667 (drop: -0.0476)
+    FBCSP, k=20: 0.6190 (drop: 0.0000)
+    FBCSP, k=25: 0.6111 (drop: 0.0079)
+    FBCSP, k=30: 0.5913 (drop: 0.0278)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.8413 (drop: -0.0079)
+    CNN_SAE, k=15: 0.8175 (drop: 0.0159)
+    CNN_SAE, k=20: 0.8770 (drop: -0.0437)
+    CNN_SAE, k=25: 0.8690 (drop: -0.0357)
+    CNN_SAE, k=30: 0.8730 (drop: -0.0397)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9325 (drop: -0.0159)
+    EEGNET, k=15: 0.9325 (drop: -0.0159)
+    EEGNET, k=20: 0.9365 (drop: -0.0198)
+    EEGNET, k=25: 0.9127 (drop: 0.0040)
+    EEGNET, k=30: 0.9246 (drop: -0.0079)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.8095 (drop: -0.0119)
+    ACS_SE_CNN, k=15: 0.8254 (drop: -0.0278)
+    ACS_SE_CNN, k=20: 0.8016 (drop: -0.0040)
+    ACS_SE_CNN, k=25: 0.7937 (drop: 0.0040)
+    ACS_SE_CNN, k=30: 0.8056 (drop: -0.0079)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.7381 (drop: 0.0476)
+    G_CARM-ES, k=15: 0.7222 (drop: 0.0635)
+    G_CARM-ES, k=20: 0.7341 (drop: 0.0516)
+    G_CARM-ES, k=25: 0.7738 (drop: 0.0119)
+    G_CARM-ES, k=30: 0.7738 (drop: 0.0119)
+    G_CARM-AS, k=10: 0.7817 (drop: 0.0040)
+    G_CARM-AS, k=15: 0.7937 (drop: -0.0079)
+    G_CARM-AS, k=20: 0.7421 (drop: 0.0437)
+    G_CARM-AS, k=25: 0.7698 (drop: 0.0159)
+    G_CARM-AS, k=30: 0.7897 (drop: -0.0040)
+
+Processing S006...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.5913 (drop: -0.0754)
+    FBCSP, k=15: 0.5675 (drop: -0.0516)
+    FBCSP, k=20: 0.5833 (drop: -0.0675)
+    FBCSP, k=25: 0.5952 (drop: -0.0794)
+    FBCSP, k=30: 0.5556 (drop: -0.0397)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.8571 (drop: -0.0556)
+    CNN_SAE, k=15: 0.8889 (drop: -0.0873)
+    CNN_SAE, k=20: 0.8214 (drop: -0.0198)
+    CNN_SAE, k=25: 0.8095 (drop: -0.0079)
+    CNN_SAE, k=30: 0.7817 (drop: 0.0198)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9286 (drop: -0.0040)
+    EEGNET, k=15: 0.9286 (drop: -0.0040)
+    EEGNET, k=20: 0.9444 (drop: -0.0198)
+    EEGNET, k=25: 0.9484 (drop: -0.0238)
+    EEGNET, k=30: 0.9563 (drop: -0.0317)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.7341 (drop: 0.0040)
+    ACS_SE_CNN, k=15: 0.7421 (drop: -0.0040)
+    ACS_SE_CNN, k=20: 0.7579 (drop: -0.0198)
+    ACS_SE_CNN, k=25: 0.7817 (drop: -0.0437)
+    ACS_SE_CNN, k=30: 0.7540 (drop: -0.0159)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.7341 (drop: -0.0040)
+    G_CARM-ES, k=15: 0.7143 (drop: 0.0159)
+    G_CARM-ES, k=20: 0.7222 (drop: 0.0079)
+    G_CARM-ES, k=25: 0.6786 (drop: 0.0516)
+    G_CARM-ES, k=30: 0.7024 (drop: 0.0278)
+    G_CARM-AS, k=10: 0.7222 (drop: 0.0079)
+    G_CARM-AS, k=15: 0.7262 (drop: 0.0040)
+    G_CARM-AS, k=20: 0.7460 (drop: -0.0159)
+    G_CARM-AS, k=25: 0.7341 (drop: -0.0040)
+    G_CARM-AS, k=30: 0.7460 (drop: -0.0159)
+
+Processing S007...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.7222 (drop: 0.0040)
+    FBCSP, k=15: 0.7698 (drop: -0.0437)
+    FBCSP, k=20: 0.7460 (drop: -0.0198)
+    FBCSP, k=25: 0.7183 (drop: 0.0079)
+    FBCSP, k=30: 0.7460 (drop: -0.0198)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.9365 (drop: -0.0357)
+    CNN_SAE, k=15: 0.9206 (drop: -0.0198)
+    CNN_SAE, k=20: 0.9286 (drop: -0.0278)
+    CNN_SAE, k=25: 0.9365 (drop: -0.0357)
+    CNN_SAE, k=30: 0.9167 (drop: -0.0159)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9643 (drop: -0.0040)
+    EEGNET, k=15: 0.9643 (drop: -0.0040)
+    EEGNET, k=20: 0.9643 (drop: -0.0040)
+    EEGNET, k=25: 0.9802 (drop: -0.0198)
+    EEGNET, k=30: 0.9841 (drop: -0.0238)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.8849 (drop: 0.0119)
+    ACS_SE_CNN, k=15: 0.8968 (drop: 0.0000)
+    ACS_SE_CNN, k=20: 0.8373 (drop: 0.0595)
+    ACS_SE_CNN, k=25: 0.8810 (drop: 0.0159)
+    ACS_SE_CNN, k=30: 0.8810 (drop: 0.0159)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.8849 (drop: -0.0278)
+    G_CARM-ES, k=15: 0.8770 (drop: -0.0198)
+    G_CARM-ES, k=20: 0.8571 (drop: 0.0000)
+    G_CARM-ES, k=25: 0.8452 (drop: 0.0119)
+    G_CARM-ES, k=30: 0.8571 (drop: 0.0000)
+    G_CARM-AS, k=10: 0.9048 (drop: -0.0476)
+    G_CARM-AS, k=15: 0.8690 (drop: -0.0119)
+    G_CARM-AS, k=20: 0.8690 (drop: -0.0119)
+    G_CARM-AS, k=25: 0.8770 (drop: -0.0198)
+    G_CARM-AS, k=30: 0.8651 (drop: -0.0079)
+
+Processing S008...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.6310 (drop: -0.0238)
+    FBCSP, k=15: 0.6627 (drop: -0.0556)
+    FBCSP, k=20: 0.7063 (drop: -0.0992)
+    FBCSP, k=25: 0.6984 (drop: -0.0913)
+    FBCSP, k=30: 0.6706 (drop: -0.0635)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.9603 (drop: -0.0516)
+    CNN_SAE, k=15: 0.9246 (drop: -0.0159)
+    CNN_SAE, k=20: 0.9286 (drop: -0.0198)
+    CNN_SAE, k=25: 0.9365 (drop: -0.0278)
+    CNN_SAE, k=30: 0.9246 (drop: -0.0159)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9683 (drop: 0.0079)
+    EEGNET, k=15: 0.9881 (drop: -0.0119)
+    EEGNET, k=20: 0.9683 (drop: 0.0079)
+    EEGNET, k=25: 0.9643 (drop: 0.0119)
+    EEGNET, k=30: 0.9802 (drop: -0.0040)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.8452 (drop: 0.0476)
+    ACS_SE_CNN, k=15: 0.8571 (drop: 0.0357)
+    ACS_SE_CNN, k=20: 0.9008 (drop: -0.0079)
+    ACS_SE_CNN, k=25: 0.9008 (drop: -0.0079)
+    ACS_SE_CNN, k=30: 0.8810 (drop: 0.0119)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.7817 (drop: 0.0913)
+    G_CARM-ES, k=15: 0.7262 (drop: 0.1468)
+    G_CARM-ES, k=20: 0.8056 (drop: 0.0675)
+    G_CARM-ES, k=25: 0.7579 (drop: 0.1151)
+    G_CARM-ES, k=30: 0.8373 (drop: 0.0357)
+    G_CARM-AS, k=10: 0.8651 (drop: 0.0079)
+    G_CARM-AS, k=15: 0.7778 (drop: 0.0952)
+    G_CARM-AS, k=20: 0.8492 (drop: 0.0238)
+    G_CARM-AS, k=25: 0.8770 (drop: -0.0040)
+    G_CARM-AS, k=30: 0.8810 (drop: -0.0079)
+
+Processing S011...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.5714 (drop: -0.0635)
+    FBCSP, k=15: 0.5714 (drop: -0.0635)
+    FBCSP, k=20: 0.5238 (drop: -0.0159)
+    FBCSP, k=25: 0.5317 (drop: -0.0238)
+    FBCSP, k=30: 0.4960 (drop: 0.0119)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.8968 (drop: -0.0079)
+    CNN_SAE, k=15: 0.8532 (drop: 0.0357)
+    CNN_SAE, k=20: 0.8651 (drop: 0.0238)
+    CNN_SAE, k=25: 0.8849 (drop: 0.0040)
+    CNN_SAE, k=30: 0.8929 (drop: -0.0040)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9127 (drop: 0.0000)
+    EEGNET, k=15: 0.9246 (drop: -0.0119)
+    EEGNET, k=20: 0.9365 (drop: -0.0238)
+    EEGNET, k=25: 0.9127 (drop: 0.0000)
+    EEGNET, k=30: 0.9206 (drop: -0.0079)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.8254 (drop: 0.0079)
+    ACS_SE_CNN, k=15: 0.8056 (drop: 0.0278)
+    ACS_SE_CNN, k=20: 0.8056 (drop: 0.0278)
+    ACS_SE_CNN, k=25: 0.8413 (drop: -0.0079)
+    ACS_SE_CNN, k=30: 0.8095 (drop: 0.0238)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.6944 (drop: 0.0159)
+    G_CARM-ES, k=15: 0.6944 (drop: 0.0159)
+    G_CARM-ES, k=20: 0.7341 (drop: -0.0238)
+    G_CARM-ES, k=25: 0.7381 (drop: -0.0278)
+    G_CARM-ES, k=30: 0.7103 (drop: 0.0000)
+    G_CARM-AS, k=10: 0.7222 (drop: -0.0119)
+    G_CARM-AS, k=15: 0.6548 (drop: 0.0556)
+    G_CARM-AS, k=20: 0.6706 (drop: 0.0397)
+    G_CARM-AS, k=25: 0.7937 (drop: -0.0833)
+    G_CARM-AS, k=30: 0.7500 (drop: -0.0397)
+
+Processing S014...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.7063 (drop: -0.0317)
+    FBCSP, k=15: 0.7024 (drop: -0.0278)
+    FBCSP, k=20: 0.7024 (drop: -0.0278)
+    FBCSP, k=25: 0.7302 (drop: -0.0556)
+    FBCSP, k=30: 0.6746 (drop: 0.0000)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.8810 (drop: -0.0278)
+    CNN_SAE, k=15: 0.8770 (drop: -0.0238)
+    CNN_SAE, k=20: 0.8730 (drop: -0.0198)
+    CNN_SAE, k=25: 0.8810 (drop: -0.0278)
+    CNN_SAE, k=30: 0.8651 (drop: -0.0119)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.9048 (drop: -0.0278)
+    EEGNET, k=15: 0.8968 (drop: -0.0198)
+    EEGNET, k=20: 0.8810 (drop: -0.0040)
+    EEGNET, k=25: 0.8968 (drop: -0.0198)
+    EEGNET, k=30: 0.8929 (drop: -0.0159)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.8175 (drop: 0.0079)
+    ACS_SE_CNN, k=15: 0.8333 (drop: -0.0079)
+    ACS_SE_CNN, k=20: 0.8254 (drop: 0.0000)
+    ACS_SE_CNN, k=25: 0.8333 (drop: -0.0079)
+    ACS_SE_CNN, k=30: 0.7976 (drop: 0.0278)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.7143 (drop: 0.0040)
+    G_CARM-ES, k=15: 0.7421 (drop: -0.0238)
+    G_CARM-ES, k=20: 0.6984 (drop: 0.0198)
+    G_CARM-ES, k=25: 0.7183 (drop: 0.0000)
+    G_CARM-ES, k=30: 0.7937 (drop: -0.0754)
+    G_CARM-AS, k=10: 0.7659 (drop: -0.0476)
+    G_CARM-AS, k=15: 0.8214 (drop: -0.1032)
+    G_CARM-AS, k=20: 0.7698 (drop: -0.0516)
+    G_CARM-AS, k=25: 0.7937 (drop: -0.0754)
+    G_CARM-AS, k=30: 0.7857 (drop: -0.0675)
+
+Processing S015...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.8135 (drop: -0.0675)
+    FBCSP, k=15: 0.8413 (drop: -0.0952)
+    FBCSP, k=20: 0.8333 (drop: -0.0873)
+    FBCSP, k=25: 0.8373 (drop: -0.0913)
+    FBCSP, k=30: 0.8413 (drop: -0.0952)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.8294 (drop: 0.0159)
+    CNN_SAE, k=15: 0.8294 (drop: 0.0159)
+    CNN_SAE, k=20: 0.8532 (drop: -0.0079)
+    CNN_SAE, k=25: 0.8611 (drop: -0.0159)
+    CNN_SAE, k=30: 0.8651 (drop: -0.0198)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.8968 (drop: 0.0159)
+    EEGNET, k=15: 0.9167 (drop: -0.0040)
+    EEGNET, k=20: 0.9008 (drop: 0.0119)
+    EEGNET, k=25: 0.9127 (drop: 0.0000)
+    EEGNET, k=30: 0.9325 (drop: -0.0198)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.8294 (drop: 0.0198)
+    ACS_SE_CNN, k=15: 0.8571 (drop: -0.0079)
+    ACS_SE_CNN, k=20: 0.8571 (drop: -0.0079)
+    ACS_SE_CNN, k=25: 0.8254 (drop: 0.0238)
+    ACS_SE_CNN, k=30: 0.8452 (drop: 0.0040)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.8413 (drop: 0.0159)
+    G_CARM-ES, k=15: 0.7857 (drop: 0.0714)
+    G_CARM-ES, k=20: 0.7778 (drop: 0.0794)
+    G_CARM-ES, k=25: 0.8254 (drop: 0.0317)
+    G_CARM-ES, k=30: 0.8214 (drop: 0.0357)
+    G_CARM-AS, k=10: 0.8294 (drop: 0.0278)
+    G_CARM-AS, k=15: 0.8214 (drop: 0.0357)
+    G_CARM-AS, k=20: 0.8333 (drop: 0.0238)
+    G_CARM-AS, k=25: 0.8611 (drop: -0.0040)
+    G_CARM-AS, k=30: 0.8492 (drop: 0.0079)
+
+Processing S016...
+
+  FBCSP channel selection...
+    FBCSP, k=10: 0.7302 (drop: -0.1032)
+    FBCSP, k=15: 0.7103 (drop: -0.0833)
+    FBCSP, k=20: 0.6825 (drop: -0.0556)
+    FBCSP, k=25: 0.6508 (drop: -0.0238)
+    FBCSP, k=30: 0.6984 (drop: -0.0714)
+
+  CNN_SAE channel selection...
+    CNN_SAE, k=10: 0.7738 (drop: -0.0198)
+    CNN_SAE, k=15: 0.7500 (drop: 0.0040)
+    CNN_SAE, k=20: 0.7579 (drop: -0.0040)
+    CNN_SAE, k=25: 0.7659 (drop: -0.0119)
+    CNN_SAE, k=30: 0.7778 (drop: -0.0238)
+
+  EEGNET channel selection...
+    EEGNET, k=10: 0.8095 (drop: 0.0079)
+    EEGNET, k=15: 0.7857 (drop: 0.0317)
+    EEGNET, k=20: 0.7619 (drop: 0.0556)
+    EEGNET, k=25: 0.7738 (drop: 0.0437)
+    EEGNET, k=30: 0.7341 (drop: 0.0833)
+
+  ACS_SE_CNN channel selection...
+    ACS_SE_CNN, k=10: 0.7063 (drop: 0.0397)
+    ACS_SE_CNN, k=15: 0.7024 (drop: 0.0437)
+    ACS_SE_CNN, k=20: 0.7143 (drop: 0.0317)
+    ACS_SE_CNN, k=25: 0.7024 (drop: 0.0437)
+    ACS_SE_CNN, k=30: 0.7500 (drop: -0.0040)
+
+  G_CARM channel selection...
+    G_CARM-ES, k=10: 0.7341 (drop: 0.0476)
+    G_CARM-ES, k=15: 0.7659 (drop: 0.0159)
+    G_CARM-ES, k=20: 0.7778 (drop: 0.0040)
+    G_CARM-ES, k=25: 0.7222 (drop: 0.0595)
+    G_CARM-ES, k=30: 0.7381 (drop: 0.0437)
+    G_CARM-AS, k=10: 0.7698 (drop: 0.0119)
+    G_CARM-AS, k=15: 0.7421 (drop: 0.0397)
+    G_CARM-AS, k=20: 0.7738 (drop: 0.0079)
+    G_CARM-AS, k=25: 0.7540 (drop: 0.0278)
+    G_CARM-AS, k=30: 0.7778 (drop: 0.0040)
+
+================================================================================
+Channel Selection Complete!
+================================================================================
